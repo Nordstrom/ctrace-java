@@ -1,0 +1,29 @@
+group 'io.ctrace'
+version '0.1.0'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId 'io.ctrace'
+            artifactId 'ctrace'
+            from components.java
+        }
+    }
+}
+
+dependencies {
+    compile 'io.opentracing:opentracing-api:0.30.0'
+    compile 'io.opentracing:opentracing-util:0.30.0'
+    testCompile 'junit:junit:4.12'
+    testCompile 'com.jsoniter:jsoniter:0.9.15'
+    testCompile 'org.cthul:cthul-matchers:1.1.0'
+    testCompile 'org.hamcrest:hamcrest-all:1.3'
+}
