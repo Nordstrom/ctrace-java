@@ -9,16 +9,6 @@ repositories {
     mavenCentral()
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            groupId 'io.ctrace'
-            artifactId 'ctrace'
-            from components.java
-        }
-    }
-}
-
 dependencies {
     compile 'io.opentracing:opentracing-api:0.30.0'
     compile 'io.opentracing:opentracing-util:0.30.0'
