@@ -1,8 +1,5 @@
 package io.ctrace;
 
-import io.opentracing.propagation.Format;
-import io.opentracing.propagation.TextMap;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -10,6 +7,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.opentracing.propagation.Format;
+import io.opentracing.propagation.TextMap;
+
+
+/**
+ * Propagator handles injecting and extracting SpanContext to/from carriers such as HTTP Headers,
+ * TextMaps, etc...
+ */
 public class Propagator {
     static final String SPAN_ID_MAP_KEY = "ct-span-id";
     static final String TRACE_ID_MAP_KEY = "ct-trace-id";

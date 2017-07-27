@@ -1,13 +1,17 @@
 package io.ctrace;
 
+
+import static org.cthul.matchers.CthulMatchers.matchesPattern;
+import static org.junit.Assert.assertThat;
+
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 
-import static org.cthul.matchers.CthulMatchers.matchesPattern;
-import static org.junit.Assert.assertThat;
-
+/**
+ * StreamReporter tests.
+ */
 public class StreamReporterTest extends BaseTest {
     @Test
     public void testStreamReporter() {
@@ -24,7 +28,8 @@ public class StreamReporterTest extends BaseTest {
 
         String pattern =
                 "\\{\"traceId\":\"abc\",\"spanId\":\"[0-9a-f]{32}\",\"parentId\":\"def\"," +
-                        "\"service\":\"TestService\",\"operation\":\"TestOperation\",\"start\":123," +
+                        "\"service\":\"TestService\",\"operation\":\"TestOperation\"," +
+                        "\"start\":123," +
                         "\"log\":\\{\"timestamp\":123,\"event\":\"Start-Span\"\\}\\}\n";
 
         assertThat(encoded, matchesPattern(pattern));

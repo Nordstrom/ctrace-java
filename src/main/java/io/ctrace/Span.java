@@ -4,6 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Represents an in-flight Span that's <strong>manually propagated</strong> within the given
+ * process.
+ *
+ * <p>{@link Span}s are created by the {@link Tracer.SpanBuilder#startManual} method;
+ *
+ * @see io.opentracing.ActiveSpan for automatic propagation (recommended for most intstrumentation!)
+ */
 public class Span implements io.opentracing.Span {
     private Tracer tracer;
     private String serviceName;
@@ -44,7 +52,8 @@ public class Span implements io.opentracing.Span {
      * <p>
      * This may be called at any time, including after calls to finish().
      *
-     * @return the SpanContext that encapsulates Span state that should propagate across process boundaries.
+     * @return the SpanContext that encapsulates Span state that should propagate across process
+     *         boundaries.
      */
     @Override
     public SpanContext context() {
@@ -52,7 +61,7 @@ public class Span implements io.opentracing.Span {
     }
 
     /**
-     * Get trace id
+     * Get trace id.
      *
      * @return traceId
      */
@@ -61,7 +70,7 @@ public class Span implements io.opentracing.Span {
     }
 
     /**
-     * Get span id
+     * Get span id.
      *
      * @return spanId
      */
@@ -70,7 +79,7 @@ public class Span implements io.opentracing.Span {
     }
 
     /**
-     * Get parent span id
+     * Get parent span id.
      *
      * @return parentId
      */
@@ -94,7 +103,7 @@ public class Span implements io.opentracing.Span {
 
 
     /**
-     * Get start time microseconds
+     * Get start time microseconds.
      *
      * @return startMicros
      */
@@ -146,7 +155,7 @@ public class Span implements io.opentracing.Span {
      */
     @Override
     public Span setTag(String key, String value) {
-        return this._setTag(key, value);
+        return this.setTagInternal(key, value);
     }
 
     /**
@@ -157,7 +166,7 @@ public class Span implements io.opentracing.Span {
      */
     @Override
     public Span setTag(String key, boolean value) {
-        return this._setTag(key, value);
+        return this.setTagInternal(key, value);
     }
 
     /**
@@ -168,10 +177,10 @@ public class Span implements io.opentracing.Span {
      */
     @Override
     public Span setTag(String key, Number value) {
-        return this._setTag(key, value);
+        return this.setTagInternal(key, value);
     }
 
-    private synchronized Span _setTag(String key, Object value) {
+    private synchronized Span setTagInternal(String key, Object value) {
         if (this.tags == null) {
             this.tags = new HashMap<>();
         }
@@ -182,7 +191,8 @@ public class Span implements io.opentracing.Span {
     /**
      * Log key:value pairs to the Span with the current walltime timestamp.
      * <p>
-     * <p><strong>CAUTIONARY NOTE:</strong> not all Tracer implementations support key:value log fields end-to-end.
+     * <p><strong>CAUTIONARY NOTE:</strong> not all Tracer implementations support key:value log
+     * fields end-to-end.
      * Caveat emptor.
      * <p>
      * <p>A contrived example (using Guava, which is not required):
@@ -195,8 +205,8 @@ public class Span implements io.opentracing.Span {
      * .build());
      * </code></pre>
      *
-     * @param fields key:value log fields. Tracer implementations should support String, numeric, and boolean values;
-     *               some may also support arbitrary Objects.
+     * @param fields key:value log fields. Tracer implementations should support String, numeric,
+     *               and boolean values; some may also support arbitrary Objects.
      * @return the Span, for chaining
      * @see Span#log(String)
      */
@@ -208,13 +218,14 @@ public class Span implements io.opentracing.Span {
     /**
      * Like log(Map&lt;String, Object&gt;), but with an explicit timestamp.
      * <p>
-     * <p><strong>CAUTIONARY NOTE:</strong> not all Tracer implementations support key:value log fields end-to-end.
+     * <p><strong>CAUTIONARY NOTE:</strong> not all Tracer implementations support key:value log
+     * fields end-to-end.
      * Caveat emptor.
      *
-     * @param timestampMicros The explicit timestamp for the log record. Must be greater than or equal to the
-     *                        Span's start timestamp.
-     * @param fields          key:value log fields. Tracer implementations should support String, numeric, and boolean values;
-     *                        some may also support arbitrary Objects.
+     * @param timestampMicros The explicit timestamp for the log record. Must be greater than or
+     *                        equal to the Span's start timestamp.
+     * @param fields          key:value log fields. Tracer implementations should support String,
+     *                        numeric, and boolean values; some may also support arbitrary Objects.
      * @return the Span, for chaining
      * @see Span#log(long, String)
      */
@@ -263,9 +274,10 @@ public class Span implements io.opentracing.Span {
      * span.log(timestampMicroseconds, Collections.singletonMap("event", event));
      * </code></pre>
      *
-     * @param timestampMicros The explicit timestamp for the log record. Must be greater than or equal to the
-     *                        Span's start timestamp.
-     * @param event           the event value; often a stable identifier for a moment in the Span lifecycle
+     * @param timestampMicros The explicit timestamp for the log record. Must be greater than or
+     *                        equal to the Span's start timestamp.
+     * @param event           the event value; often a stable identifier for a moment in the Span
+     *                        lifecycle
      * @return the Span, for chaining
      */
     @Override
@@ -278,13 +290,14 @@ public class Span implements io.opentracing.Span {
     /**
      * Sets a baggage item in the Span (and its SpanContext) as a key/value pair.
      * <p>
-     * Baggage enables powerful distributed context propagation functionality where arbitrary application data can be
-     * carried along the full path of request execution throughout the system.
+     * Baggage enables powerful distributed context propagation functionality where arbitrary
+     * application data can be carried along the full path of request execution throughout the
+     * system.
      * <p>
      * Note 1: Baggage is only propagated to the future (recursive) children of this SpanContext.
      * <p>
-     * Note 2: Baggage is sent in-band with every subsequent local and remote calls, so this feature must be used with
-     * care.
+     * Note 2: Baggage is sent in-band with every subsequent local and remote calls, so this
+     * feature must be used with care.
      *
      * @param key
      * @param value
@@ -298,7 +311,8 @@ public class Span implements io.opentracing.Span {
 
     /**
      * @param key
-     * @return the value of the baggage item identified by the given key, or null if no such item could be found
+     * @return the value of the baggage item identified by the given key, or null if no such item
+     *         could be found
      */
     @Override
     public String getBaggageItem(String key) {
@@ -352,9 +366,9 @@ public class Span implements io.opentracing.Span {
     /**
      * Sets the end timestamp to now and records the span.
      * <p>
-     * <p>With the exception of calls to {@link #context}, this should be the last call made to the span instance.
-     * Future calls to {@link #finish} are defined as noops, and future calls to methods other than {@link #context}
-     * lead to undefined behavior.
+     * <p>With the exception of calls to {@link #context}, this should be the last call made to the
+     * span instance.  Future calls to {@link #finish} are defined as noops, and future calls to
+     * methods other than {@link #context} lead to undefined behavior.
      *
      * @see Span#context()
      */
@@ -366,8 +380,8 @@ public class Span implements io.opentracing.Span {
     /**
      * Sets an explicit end timestamp and records the span.
      * <p>
-     * <p>With the exception of calls to Span.context(), this should be the last call made to the span instance, and to
-     * do otherwise leads to undefined behavior.
+     * <p>With the exception of calls to Span.context(), this should be the last call made to the
+     * span instance, and to do otherwise leads to undefined behavior.
      *
      * @param finishMicros an explicit finish time, in microseconds since the epoch
      * @see Span#context()

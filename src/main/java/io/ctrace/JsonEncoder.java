@@ -3,22 +3,30 @@ package io.ctrace;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+/**
+ * Encodes span into array of bytes in JSON UTF-8 format.
+ */
 public class JsonEncoder implements Encoder {
+    /**
+     * Encode a span into an array of bytes in JSON UTF-8 format.
+     * @param span - span to encode
+     * @return array of encoded bytes.
+     */
     @Override
-    public byte[] Encode(Span span) {
+    public byte[] encode(Span span) {
         StringBuilder builder = new StringBuilder();
 
-        EncodePrefix(builder, span);
-        EncodeFinish(builder, span);
-        EncodeTags(builder, span);
-        EncodeBaggage(builder, span);
-        EncodeLogs(builder, span);
-        EncodeSuffix(builder);
+        encodePrefix(builder, span);
+        encodeFinish(builder, span);
+        encodeTags(builder, span);
+        encodeBaggage(builder, span);
+        encodeLogs(builder, span);
+        encodeSuffix(builder);
         return builder.toString()
                       .getBytes(StandardCharsets.UTF_8);
     }
 
-    private static void EncodePrefix(StringBuilder builder, Span span) {
+    private static void encodePrefix(StringBuilder builder, Span span) {
         String prefix = span.encodedPrefix();
         if (prefix != null) {
             builder.append(prefix);
@@ -52,7 +60,7 @@ public class JsonEncoder implements Encoder {
         span.setEncodedPrefix(builder.toString());
     }
 
-    private static void EncodeFinish(StringBuilder builder, Span span) {
+    private static void encodeFinish(StringBuilder builder, Span span) {
         long finish = span.finishMicros();
         if (finish > 0) {
             builder.append(",\"finish\":")
@@ -62,7 +70,7 @@ public class JsonEncoder implements Encoder {
         }
     }
 
-    private static void EncodeTags(StringBuilder builder, Span span) {
+    private static void encodeTags(StringBuilder builder, Span span) {
         Iterable<Map.Entry<String, Object>> tags = span.tagEntries();
         if (tags == null) {
             return;
@@ -70,22 +78,29 @@ public class JsonEncoder implements Encoder {
         builder.append(",\"tags\":{");
         boolean first = true;
         for (Map.Entry<String, ?> entry : tags) {
-            if (first) first = false;
-            else builder.append(',');
+            if (first) {
+                first = false;
+            } else {
+                builder.append(',');
+            }
             builder.append('"')
                    .append(entry.getKey())
                    .append("\":");
             Object value = entry.getValue();
             boolean quote = value instanceof String;
-            if (quote) builder.append('"');
+            if (quote) {
+                builder.append('"');
+            }
 
             builder.append(value);
-            if (quote) builder.append('"');
+            if (quote) {
+                builder.append('"');
+            }
         }
         builder.append("}");
     }
 
-    private static void EncodeBaggage(StringBuilder builder, Span span) {
+    private static void encodeBaggage(StringBuilder builder, Span span) {
         Iterable<Map.Entry<String, String>> baggage = span.baggageItems();
         if (baggage == null) {
             return;
@@ -94,8 +109,11 @@ public class JsonEncoder implements Encoder {
         builder.append(",\"baggage\":{");
         boolean first = true;
         for (Map.Entry<String, String> entry : baggage) {
-            if (first) first = false;
-            else builder.append(',');
+            if (first) {
+                first = false;
+            } else {
+                builder.append(',');
+            }
             builder.append('"')
                    .append(entry.getKey())
                    .append("\":\"")
@@ -105,12 +123,12 @@ public class JsonEncoder implements Encoder {
         builder.append("}");
     }
 
-    private static void EncodeLogs(StringBuilder builder, Span span) {
+    private static void encodeLogs(StringBuilder builder, Span span) {
         LogEntry log = span.log();
         if (log != null) {
             // Multi Event:  Only one log to encode.  Then return
             builder.append(",\"log\":");
-            EncodeLog(builder, log);
+            encodeLog(builder, log);
             return;
         }
 
@@ -122,14 +140,17 @@ public class JsonEncoder implements Encoder {
         builder.append(",\"logs\":[");
         boolean first = true;
         for (LogEntry entry : logs) {
-            if (first) first = false;
-            else builder.append(',');
-            EncodeLog(builder, entry);
+            if (first) {
+                first = false;
+            } else {
+                builder.append(',');
+            }
+            encodeLog(builder, entry);
         }
         builder.append(']');
     }
 
-    private static void EncodeLog(StringBuilder builder, LogEntry entry) {
+    private static void encodeLog(StringBuilder builder, LogEntry entry) {
         builder.append("{\"timestamp\":")
                .append(entry.timestampMicros());
 
@@ -140,14 +161,18 @@ public class JsonEncoder implements Encoder {
                    .append("\":");
             Object value = field.getValue();
             boolean quote = value instanceof String;
-            if (quote) builder.append('"');
+            if (quote) {
+                builder.append('"');
+            }
             builder.append(value);
-            if (quote) builder.append('"');
+            if (quote) {
+                builder.append('"');
+            }
         }
         builder.append('}');
     }
 
-    private static void EncodeSuffix(StringBuilder builder) {
+    private static void encodeSuffix(StringBuilder builder) {
         builder.append('}')
                .append(System.lineSeparator());
     }

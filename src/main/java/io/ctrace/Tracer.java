@@ -1,10 +1,5 @@
 package io.ctrace;
 
-
-import io.opentracing.*;
-import io.opentracing.propagation.Format;
-import io.opentracing.util.ThreadLocalActiveSpanSource;
-
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
@@ -12,6 +7,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import io.opentracing.*;
+import io.opentracing.propagation.Format;
+import io.opentracing.util.ThreadLocalActiveSpanSource;
+
+
+/**
+ * Tracer is a simple, thin interface for Span creation and propagation across arbitrary transports.
+ */
 public final class Tracer implements io.opentracing.Tracer {
     private static final String SERVICE_NAME_VAR = "ctrace_service_name";
     private static final String[] TRACE_ID_EXTRACT_HEADERS = new String[]{
@@ -115,8 +118,8 @@ public final class Tracer implements io.opentracing.Tracer {
      * <pre><code>
      *   Tracer tracer = ...
      *
-     *   // Note: if there is a `tracer.activeSpan()`, it will be used as the target of an implicit CHILD_OF
-     *   // Reference for "workSpan" when `startActive()` is invoked.
+     *   // Note: if there is a `tracer.activeSpan()`, it will be used as the target of an implicit
+     *   //       CHILD_OF Reference for "workSpan" when `startActive()` is invoked.
      *   try (ActiveSpan workSpan = tracer.buildSpan("DoWork").startActive()) {
      *       workSpan.setTag("...", "...");
      *       // etc, etc
@@ -138,7 +141,8 @@ public final class Tracer implements io.opentracing.Tracer {
     }
 
     /**
-     * Inject a SpanContext into a `carrier` of a given type, presumably for propagation across process boundaries.
+     * Inject a SpanContext into a `carrier` of a given type, presumably for propagation across
+     * process boundaries.
      * <p>
      * <p>Example:
      * <pre><code>
@@ -150,8 +154,8 @@ public final class Tracer implements io.opentracing.Tracer {
      *
      * @param spanContext the SpanContext instance to inject into the carrier
      * @param format      the Format of the carrier
-     * @param carrier     the carrier for the SpanContext state. All Tracer.inject() implementations must support
-     *                    io.opentracing.propagation.TextMap and java.nio.ByteBuffer.
+     * @param carrier     the carrier for the SpanContext state. All Tracer.inject() implementations
+     *                    must support io.opentracing.propagation.TextMap and java.nio.ByteBuffer.
      * @see Format
      * @see Format.Builtin
      */
@@ -161,7 +165,8 @@ public final class Tracer implements io.opentracing.Tracer {
     }
 
     /**
-     * Extract a SpanContext from a `carrier` of a given type, presumably after propagation across a process boundary.
+     * Extract a SpanContext from a `carrier` of a given type, presumably after propagation across
+     * a process boundary.
      * <p>
      * <p>Example:
      * <pre><code>
@@ -171,11 +176,13 @@ public final class Tracer implements io.opentracing.Tracer {
      * ... = tracer.buildSpan('...').asChildOf(spanCtx).startActive();
      * </code></pre>
      * <p>
-     * If the span serialized state is invalid (corrupt, wrong version, etc) inside the carrier this will result in an
+     * If the span serialized state is invalid (corrupt, wrong version, etc) inside the carrier
+     * this will result in an
      * IllegalArgumentException.
      *
      * @param format  the Format of the carrier
-     * @param carrier the carrier for the SpanContext state. All Tracer.extract() implementations must support
+     * @param carrier the carrier for the SpanContext state. All Tracer.extract() implementations
+     *                must support
      *                io.opentracing.propagation.TextMap and java.nio.ByteBuffer.
      * @return the SpanContext instance holding context to create a Span.
      * @see Format
@@ -203,11 +210,13 @@ public final class Tracer implements io.opentracing.Tracer {
     }
 
     /**
-     * Return the {@link ActiveSpan active span}. This does not affect the internal reference count for the
+     * Return the {@link ActiveSpan active span}. This does not affect the internal reference count
+     * for the
      * {@link ActiveSpan}.
      * <p>
      * <p>
-     * If there is an {@link ActiveSpan active span}, it becomes an implicit parent of any newly-created
+     * If there is an {@link ActiveSpan active span}, it becomes an implicit parent of any
+     * newly-created
      * {@link BaseSpan span} at {@link SpanBuilder#startActive()} time (rather than at
      * {@link Tracer#buildSpan(String)} time).
      *
@@ -219,7 +228,8 @@ public final class Tracer implements io.opentracing.Tracer {
     }
 
     /**
-     * Wrap and "make active" a {@link Span} by encapsulating it – and any active state (e.g., MDC state) in the
+     * Wrap and "make active" a {@link Span} by encapsulating it – and any active state
+     * (e.g., MDC state) in the
      * current thread – in a new {@link ActiveSpan}.
      *
      * @param span the Span to wrap in an {@link ActiveSpan}
@@ -340,8 +350,8 @@ public final class Tracer implements io.opentracing.Tracer {
         }
 
         /**
-         * Add a reference from the Span being built to a distinct (usually parent) Span. May be called multiple times
-         * to represent multiple such References.
+         * Add a reference from the Span being built to a distinct (usually parent) Span. May be
+         * called multiple times to represent multiple such References.
          * <p>
          * <p>
          * If
@@ -351,17 +361,22 @@ public final class Tracer implements io.opentracing.Tracer {
          * <li>{@link SpanBuilder#ignoreActiveSpan()} is not invoked,
          * </ul>
          * ... then an inferred {@link References#CHILD_OF} reference is created to the
-         * {@link ActiveSpanSource#activeSpan()} {@link SpanContext} when either {@link SpanBuilder#startActive()} or
+         * {@link ActiveSpanSource#activeSpan()} {@link SpanContext} when either
+         * {@link SpanBuilder#startActive()} or
          * {@link SpanBuilder#startManual} is invoked.
          *
-         * @param referenceType     the reference type, typically one of the constants defined in References
-         * @param referencedContext the SpanContext being referenced; e.g., for a References.CHILD_OF referenceType, the
-         *                          referencedContext is the parent. If referencedContext==null, the call to
+         * @param referenceType     the reference type, typically one of the constants defined in
+         *                          References
+         * @param referencedContext the SpanContext being referenced; e.g., for a
+         *                          References.CHILD_OF referenceType, the
+         *                          referencedContext is the parent. If referencedContext==null,
+         *                          the call to
          *                          {@link #addReference} is a noop.
          * @see References
          */
         @Override
-        public SpanBuilder addReference(String referenceType, io.opentracing.SpanContext referencedContext) {
+        public SpanBuilder addReference(String referenceType,
+                                        io.opentracing.SpanContext referencedContext) {
             if (Objects.equals(referenceType, References.CHILD_OF)) {
                 return this.asChildOf(referencedContext);
             }
@@ -369,7 +384,8 @@ public final class Tracer implements io.opentracing.Tracer {
         }
 
         /**
-         * Do not create an implicit {@link References#CHILD_OF} reference to the {@link ActiveSpanSource#activeSpan}).
+         * Do not create an implicit {@link References#CHILD_OF} reference to the
+         * {@link ActiveSpanSource#activeSpan}).
          */
         @Override
         public SpanBuilder ignoreActiveSpan() {
@@ -385,7 +401,7 @@ public final class Tracer implements io.opentracing.Tracer {
          */
         @Override
         public SpanBuilder withTag(String key, String value) {
-            return this._withTag(key, value);
+            return this.withTagInternal(key, value);
         }
 
         /**
@@ -396,7 +412,7 @@ public final class Tracer implements io.opentracing.Tracer {
          */
         @Override
         public SpanBuilder withTag(String key, boolean value) {
-            return this._withTag(key, value);
+            return this.withTagInternal(key, value);
         }
 
         /**
@@ -407,10 +423,10 @@ public final class Tracer implements io.opentracing.Tracer {
          */
         @Override
         public SpanBuilder withTag(String key, Number value) {
-            return this._withTag(key, value);
+            return this.withTagInternal(key, value);
         }
 
-        private <T> SpanBuilder _withTag(String key, T value) {
+        private <T> SpanBuilder withTagInternal(String key, T value) {
             if (this.tags == null) {
                 this.tags = new HashMap<>();
             }
@@ -419,7 +435,8 @@ public final class Tracer implements io.opentracing.Tracer {
         }
 
         /**
-         * Specify a timestamp of when the Span was started, represented in microseconds since epoch.
+         * Specify a timestamp of when the Span was started, represented in microseconds since
+         * epoch.
          *
          * @param microseconds start timestamp microseconds
          */
@@ -466,7 +483,8 @@ public final class Tracer implements io.opentracing.Tracer {
         }
 
         /**
-         * Like {@link #startActive()}, but the returned {@link Span} has not been registered via the
+         * Like {@link #startActive()}, but the returned {@link Span} has not been registered via
+         * the
          * {@link ActiveSpanSource}.
          *
          * @return the newly-started Span instance, which has *not* been automatically registered
@@ -485,7 +503,12 @@ public final class Tracer implements io.opentracing.Tracer {
             if (firstParent == null && !ignoringActiveSpan) {
                 firstParent = activeSpanContext();
             }
-            return new Span(Tracer.this, serviceName, operationName, startMicros, tags, firstParent);
+            return new Span(Tracer.this,
+                            serviceName,
+                            operationName,
+                            startMicros,
+                            tags,
+                            firstParent);
         }
 
         /**

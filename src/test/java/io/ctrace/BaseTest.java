@@ -1,5 +1,8 @@
 package io.ctrace;
 
+/**
+ * Base for all unit test classes.
+ */
 public class BaseTest {
     protected Tracer defaultTracer() {
         return Tracer
@@ -20,5 +23,10 @@ public class BaseTest {
         @Override
         public void report(Span span) {
         }
+
+        @Override
+        public void flush() {
+        }
+
     }
 }

@@ -1,28 +1,34 @@
 package io.ctrace;
 
+import static org.cthul.matchers.CthulMatchers.matchesPattern;
+import static org.junit.Assert.assertThat;
+
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cthul.matchers.CthulMatchers.matchesPattern;
-import static org.junit.Assert.assertThat;
-
+/**
+ * JsonEncoder tests.
+ */
 public class JsonEncoderTest extends BaseTest {
     @Test
     public void testNewSpan() {
         String encoded = new String(
                 new JsonEncoder()
-                        .Encode(new Span(defaultTracer(),
+                        .encode(new Span(defaultTracer(),
                                          "TestService",
                                          "TestOperation",
                                          123,
                                          null,
-                                         new SpanContext("abc", "def", null))));
+                                         new SpanContext("abc",
+                                                         "def",
+                                                         null))));
 
         String pattern =
                 "\\{\"traceId\":\"abc\",\"spanId\":\"[0-9a-f]{32}\",\"parentId\":\"def\"," +
-                        "\"service\":\"TestService\",\"operation\":\"TestOperation\",\"start\":123," +
+                        "\"service\":\"TestService\",\"operation\":\"TestOperation\"," +
+                        "\"start\":123," +
                         "\"log\":\\{\"timestamp\":123,\"event\":\"Start-Span\"\\}\\}\n";
 
         assertThat(encoded, matchesPattern(pattern));
@@ -36,16 +42,19 @@ public class JsonEncoderTest extends BaseTest {
         tags.put("t3", true);
         String encoded = new String(
                 new JsonEncoder()
-                        .Encode(new Span(defaultTracer(),
+                        .encode(new Span(defaultTracer(),
                                          "TestService",
                                          "TestOperation",
                                          123,
                                          tags,
-                                         new SpanContext("abc", "def", null))));
+                                         new SpanContext("abc",
+                                                         "def",
+                                                         null))));
 
         String pattern =
                 "\\{\"traceId\":\"abc\",\"spanId\":\"[0-9a-f]{32}\",\"parentId\":\"def\"," +
-                        "\"service\":\"TestService\",\"operation\":\"TestOperation\",\"start\":123," +
+                        "\"service\":\"TestService\",\"operation\":\"TestOperation\"," +
+                        "\"start\":123," +
                         "\"tags\":\\{\"t1\":\"tval1\",\"t2\":55,\"t3\":true\\}," +
                         "\"log\":\\{\"timestamp\":123,\"event\":\"Start-Span\"\\}\\}\n";
 
@@ -59,7 +68,7 @@ public class JsonEncoderTest extends BaseTest {
         bag.put("b", "bv");
         String encoded = new String(
                 new JsonEncoder()
-                        .Encode(new Span(defaultTracer(),
+                        .encode(new Span(defaultTracer(),
                                          "TestService",
                                          "TestOperation",
                                          123,
@@ -68,7 +77,8 @@ public class JsonEncoderTest extends BaseTest {
 
         String pattern =
                 "\\{\"traceId\":\"abc\",\"spanId\":\"[0-9a-f]{32}\",\"parentId\":\"def\"," +
-                        "\"service\":\"TestService\",\"operation\":\"TestOperation\",\"start\":123," +
+                        "\"service\":\"TestService\",\"operation\":\"TestOperation\"," +
+                        "\"start\":123," +
                         "\"baggage\":\\{\"[ab]\":\"[ab]v\",\"[ab]\":\"[ab]v\"\\}," +
                         "\"log\":\\{\"timestamp\":123,\"event\":\"Start-Span\"\\}\\}\n";
 
@@ -84,11 +94,12 @@ public class JsonEncoderTest extends BaseTest {
                              null,
                              null);
         span.finish(133);
-        String encoded = new String(new JsonEncoder().Encode(span));
+        String encoded = new String(new JsonEncoder().encode(span));
 
         String pattern =
                 "\\{\"traceId\":\"[0-9a-f]{32}\",\"spanId\":\"[0-9a-f]{32}\"," +
-                        "\"service\":\"TestService\",\"operation\":\"TestOperation\",\"start\":123,\"finish\":133,\"duration\":10," +
+                        "\"service\":\"TestService\",\"operation\":\"TestOperation\"," +
+                        "\"start\":123,\"finish\":133,\"duration\":10," +
                         "\"log\":\\{\"timestamp\":133,\"event\":\"Stop-Span\"\\}\\}\n";
 
         assertThat(encoded, matchesPattern(pattern));
@@ -103,12 +114,14 @@ public class JsonEncoderTest extends BaseTest {
                              null,
                              null);
         span.finish(133);
-        String encoded = new String(new JsonEncoder().Encode(span));
+        String encoded = new String(new JsonEncoder().encode(span));
 
         String pattern =
                 "\\{\"traceId\":\"[0-9a-f]{32}\",\"spanId\":\"[0-9a-f]{32}\"," +
-                        "\"service\":\"TestService\",\"operation\":\"TestOperation\",\"start\":123,\"finish\":133,\"duration\":10," +
-                        "\"logs\":\\[\\{\"timestamp\":123,\"event\":\"Start-Span\"\\},\\{\"timestamp\":133,\"event\":\"Stop-Span\"\\}\\]\\}\n";
+                        "\"service\":\"TestService\",\"operation\":\"TestOperation\"," +
+                        "\"start\":123,\"finish\":133,\"duration\":10," +
+                        "\"logs\":\\[\\{\"timestamp\":123,\"event\":\"Start-Span\"\\}," +
+                        "\\{\"timestamp\":133,\"event\":\"Stop-Span\"\\}\\]\\}\n";
 
         assertThat(encoded, matchesPattern(pattern));
     }

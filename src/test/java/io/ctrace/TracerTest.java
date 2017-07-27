@@ -1,10 +1,8 @@
 package io.ctrace;
 
-import io.opentracing.ActiveSpan;
-import io.opentracing.References;
-import io.opentracing.propagation.Format;
-import io.opentracing.propagation.TextMapExtractAdapter;
-import io.opentracing.propagation.TextMapInjectAdapter;
+import static org.cthul.matchers.CthulMatchers.matchesPattern;
+import static org.junit.Assert.*;
+
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -12,9 +10,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cthul.matchers.CthulMatchers.matchesPattern;
-import static org.junit.Assert.*;
+import io.opentracing.ActiveSpan;
+import io.opentracing.References;
+import io.opentracing.propagation.Format;
+import io.opentracing.propagation.TextMapExtractAdapter;
+import io.opentracing.propagation.TextMapInjectAdapter;
 
+
+/**
+ * Tracer tests.
+ */
 public class TracerTest extends BaseTest {
     @Test
     public void testConstructor() {
@@ -33,7 +38,10 @@ public class TracerTest extends BaseTest {
 
     @Test
     public void testBuilderWithPropagator() {
-        Propagator prop = new Propagator(null, null, null, null);
+        Propagator prop = new Propagator(null,
+                                         null,
+                                         null,
+                                         null);
         Tracer tracer = Tracer.withPropagator(prop)
                               .build();
         assertSame(prop, tracer.propagator());
@@ -41,25 +49,29 @@ public class TracerTest extends BaseTest {
 
     @Test
     public void testBuilderWithTraceIdExtractHeaders() {
-        Tracer tracer = Tracer.withTraceIdExtractHeaders("h1").build();
+        Tracer tracer = Tracer.withTraceIdExtractHeaders("h1")
+                              .build();
         assertTrue(tracer.propagator().traceIdExtractHeaders.contains("h1"));
     }
 
     @Test
     public void testBuilderWithSpanIdExtractHeaders() {
-        Tracer tracer = Tracer.withSpanIdExtractHeaders("h1").build();
+        Tracer tracer = Tracer.withSpanIdExtractHeaders("h1")
+                              .build();
         assertTrue(tracer.propagator().spanIdExtractHeaders.contains("h1"));
     }
 
     @Test
     public void testBuilderWithTraceIdInjectHeaders() {
-        Tracer tracer = Tracer.withTraceIdInjectHeaders("h1").build();
+        Tracer tracer = Tracer.withTraceIdInjectHeaders("h1")
+                              .build();
         assertArrayEquals(new String[]{"h1"}, tracer.propagator().traceIdInjectHeaders);
     }
 
     @Test
     public void testBuilderWithSpanIdInjectHeaders() {
-        Tracer tracer = Tracer.withSpanIdInjectHeaders("h1").build();
+        Tracer tracer = Tracer.withSpanIdInjectHeaders("h1")
+                              .build();
         assertArrayEquals(new String[]{"h1"}, tracer.propagator().spanIdInjectHeaders);
     }
 
@@ -86,7 +98,8 @@ public class TracerTest extends BaseTest {
 
         String pattern =
                 "\\{\"traceId\":\"abc\",\"spanId\":\"[0-9a-f]{32}\",\"parentId\":\"def\"," +
-                        "\"service\":\"TestService\",\"operation\":\"TestOperation\",\"start\":123," +
+                        "\"service\":\"TestService\",\"operation\":\"TestOperation\"," +
+                        "\"start\":123," +
                         "\"log\":\\{\"timestamp\":123,\"event\":\"Start-Span\"\\}\\}\n";
 
         assertThat(encoded, matchesPattern(pattern));
@@ -110,7 +123,8 @@ public class TracerTest extends BaseTest {
 
         String pattern =
                 "\\{\"traceId\":\"abc\",\"spanId\":\"[0-9a-f]{32}\",\"parentId\":\"def\"," +
-                        "\"service\":\"TestService\",\"operation\":\"TestOperation\",\"start\":123," +
+                        "\"service\":\"TestService\",\"operation\":\"TestOperation\"," +
+                        "\"start\":123," +
                         "\"log\":\\{\"timestamp\":123,\"event\":\"Start-Span\"\\}\\}\n";
 
         assertThat(encoded, matchesPattern(pattern));
@@ -135,7 +149,8 @@ public class TracerTest extends BaseTest {
 
         String pattern =
                 "\\{\"traceId\":\"abc\",\"spanId\":\"[0-9a-f]{32}\",\"parentId\":\"def\"," +
-                        "\"service\":\"TestService\",\"operation\":\"TestOperation\",\"start\":123," +
+                        "\"service\":\"TestService\",\"operation\":\"TestOperation\"," +
+                        "\"start\":123," +
                         "\"logs\":\\[\\{\"timestamp\":123,\"event\":\"Start-Span\"\\}\\]\\}\n";
 
         assertThat(encoded, matchesPattern(pattern));
@@ -499,11 +514,15 @@ public class TracerTest extends BaseTest {
                 .startActive();
         ActiveSpan.Continuation cont = span.capture();
         ActiveSpan reactivated = cont.activate();
-        assertEquals(((SpanContext)span.context()).traceId(), ((SpanContext)reactivated.context()).traceId());
-        assertEquals(((SpanContext)span.context()).spanId(), ((SpanContext)reactivated.context()).spanId());
+        assertEquals(((SpanContext) span.context()).traceId(),
+                     ((SpanContext) reactivated.context()).traceId());
+        assertEquals(((SpanContext) span.context()).spanId(),
+                     ((SpanContext) reactivated.context()).spanId());
 
         ActiveSpan active = tracer.activeSpan();
-        assertEquals(((SpanContext)span.context()).traceId(), ((SpanContext)active.context()).traceId());
-        assertEquals(((SpanContext)span.context()).spanId(), ((SpanContext)active.context()).spanId());
+        assertEquals(((SpanContext) span.context()).traceId(),
+                     ((SpanContext) active.context()).traceId());
+        assertEquals(((SpanContext) span.context()).spanId(),
+                     ((SpanContext) active.context()).spanId());
     }
 }
