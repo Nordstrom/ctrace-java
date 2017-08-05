@@ -7,28 +7,36 @@ import java.io.OutputStream;
  * StreamReporter encodes and reports the span to an output stream.
  */
 public class StreamReporter implements Reporter {
-    private OutputStream stream;
-    private Encoder encoder;
+  private OutputStream stream;
+  private Encoder encoder;
 
-    public StreamReporter(OutputStream stream, Encoder encoder) {
-        this.stream = stream;
-        this.encoder = encoder;
-    }
+  public StreamReporter(OutputStream stream, Encoder encoder) {
+    this.stream = stream;
+    this.encoder = encoder;
+  }
 
-    public void report(Span span) {
-        byte[] encoded = this.encoder.encode(span);
-        try {
-            this.stream.write(encoded);
-        } catch (IOException e) {
-            // Do nothing at this point...
-        }
+  /**
+   * Report the reportable item.  This can be a start, log, or finish by default.  In
+   * if SingleSpanOutput = true, this will be the full span with all logs sent at finish.
+   * @param reportable reportable span data.
+   */
+  public void report(Reportable reportable) {
+    byte[] encoded = this.encoder.encodeToBytes(reportable);
+    try {
+      this.stream.write(encoded);
+    } catch (IOException e) {
+      // Do nothing at this point...
     }
+  }
 
-    public void flush() {
-        try {
-            this.stream.flush();
-        } catch (IOException e) {
-            // do nothing
-        }
+  /**
+   * Flush the reporter.  In the case of output buffering this flushes the buffer.
+   */
+  public void flush() {
+    try {
+      this.stream.flush();
+    } catch (IOException e) {
+      // do nothing
     }
+  }
 }

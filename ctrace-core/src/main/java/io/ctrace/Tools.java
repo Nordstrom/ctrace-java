@@ -1,30 +1,37 @@
 package io.ctrace;
 
-import java.util.UUID;
+import java.security.SecureRandom;
+import lombok.val;
 
 class Tools {
-    static String newId() {
-        return encodeId(UUID.randomUUID());
-    }
+  private static final char[] hexArray = "0123456789abcdef".toCharArray();
 
-    static String encodeId(UUID id) {
-        long mostSigBits = id.getMostSignificantBits();
-        long leastSigBits = id.getLeastSignificantBits();
-        return (digits(mostSigBits >> 32, 8) +
-                digits(mostSigBits >> 16, 4) +
-                digits(mostSigBits, 4) +
-                digits(leastSigBits >> 48, 4) +
-                digits(leastSigBits, 12));
-    }
+  private static class Holder {
+    static final SecureRandom numberGenerator = new SecureRandom();
+  }
 
-    static long nowMicros() {
-        return System.currentTimeMillis() * 1000;
-    }
+  static String newId() {
+    byte[] randomBytes = new byte[8];
+    val ng = Holder.numberGenerator;
+    ng.nextBytes(randomBytes);
+    return bytesToHex(randomBytes);
+  }
 
-    /** Returns val represented by the specified number of hex digits. */
-    private static String digits(long val, int digits) {
-        long hi = 1L << (digits * 4);
-        return Long.toHexString(hi | (val & (hi - 1))).substring(1);
+  static String bytesToHex(byte[] bytes) {
+    char[] hexChars = new char[bytes.length * 2];
+    for (int j = 0; j < bytes.length; j++) {
+      int v = bytes[j] & 0xFF;
+      hexChars[j * 2] = hexArray[v >>> 4];
+      hexChars[j * 2 + 1] = hexArray[v & 0x0F];
     }
+    return new String(hexChars);
+  }
 
+  static long nowMicros() {
+    return System.currentTimeMillis() * 1000;
+  }
+
+  static long nowMillis() {
+    return System.currentTimeMillis();
+  }
 }

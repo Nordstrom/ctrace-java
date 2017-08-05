@@ -2,21 +2,22 @@ package io.ctrace;
 
 import java.util.Map;
 
-final class LogEntry {
-    private final long timestampMicros;
-    private final Map<String, ?> fields;
+public final class LogEntry {
 
-    LogEntry(long timestampMicros, Map<String, ?> fields) {
-        this.timestampMicros = timestampMicros;
-        this.fields = fields;
-    }
+  private final long timestampMillis;
+  private final Map<String, ?> fields;
 
-    long timestampMicros() {
-        return timestampMicros;
-    }
+  public LogEntry(long timestampMillis, Map<String, ?> fields) {
+    this.timestampMillis = timestampMillis;
+    this.fields = fields;
+  }
 
-    Iterable<? extends Map.Entry<String, ?>> fields() {
-        return fields.entrySet();
-    }
+  public long timestampMillis() {
+    return this.timestampMillis;
+  }
+
+  public Iterable<? extends Map.Entry<String, ?>> fields() {
+    return fields.entrySet();
+  }
 }
 
