@@ -23,7 +23,7 @@ public class StreamReporterTest extends BaseTest {
         123000,
         null,
         new SpanContext("abc", "def", null));
-    reporter.report(span.reportable());
+    reporter.report(span);
     String encoded = new String(stream.toByteArray(), StandardCharsets.UTF_8);
 
     String pattern =

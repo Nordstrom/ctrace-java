@@ -3,8 +3,7 @@ package io.ctrace;
 /**
  * Key constants for use in Span mappings such as MDC, etc...
  */
-public class Keys {
-
+public final class Keys {
   public static final String TRACE_ID = "ctrace-trace-id";
   public static final String SPAN_ID = "ctrace-span-id";
   public static final String PARENT_ID = "ctrace-parent-id";
@@ -15,4 +14,6 @@ public class Keys {
   public static final String DURATION = "ctrace-duration";
   public static final String TAGS = "ctrace-tags";
   public static final String BAGGAGE = "ctrace-bag";
+
+  private Keys() {}
 }

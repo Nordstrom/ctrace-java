@@ -3,6 +3,8 @@ package io.ctrace;
 import static org.cthul.matchers.CthulMatchers.matchesPattern;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
@@ -17,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.val;
 import org.junit.Test;
 
 
@@ -148,7 +151,7 @@ public class TracerTest extends BaseTest {
         123000,
         null,
         new SpanContext("abc", "def", null));
-    tracer.report(span.reportable());
+    tracer.report(span, false);
     String encoded = new String(stream.toByteArray(), StandardCharsets.UTF_8);
 
     String pattern =
@@ -166,7 +169,7 @@ public class TracerTest extends BaseTest {
   public void testBuildSpan() {
     Span span = defaultTracer().buildSpan("my-operation")
         .startManual();
-    assertEquals("my-operation", span.reportable().operation());
+    assertEquals("my-operation", span.operation());
   }
 
   @Test
@@ -176,7 +179,7 @@ public class TracerTest extends BaseTest {
         .asChildOf(new SpanContext("abc", "def", null))
         .startManual();
     assertEquals("abc", span.traceId());
-    assertEquals("def", span.reportable().parentId());
+    assertEquals("def", span.parentId());
   }
 
   @Test
@@ -188,17 +191,27 @@ public class TracerTest extends BaseTest {
         .asChildOf(parent)
         .startManual();
     assertEquals(parent.traceId(), span.traceId());
-    assertEquals(parent.spanId(), span.reportable().parentId());
+    assertEquals(parent.spanId(), span.parentId());
   }
 
   @Test
-  public void testBuildSpanAsReferenceSpan() {
+  public void testBuildSpanAddReferenceChildOf() {
     Span span = defaultTracer()
         .buildSpan("my-operation")
         .addReference(References.CHILD_OF, new SpanContext("abc", "def", null))
         .startManual();
     assertEquals("abc", span.traceId());
-    assertEquals("def", span.reportable().parentId());
+    assertEquals("def", span.parentId());
+  }
+
+  @Test
+  public void testBuildSpanAddReferenceFollowsFrom() {
+    Span span = defaultTracer()
+        .buildSpan("my-operation")
+        .addReference(References.FOLLOWS_FROM, new SpanContext("abc", "def", null))
+        .startManual();
+    assertNotEquals("abc", span.traceId());
+    assertNull(span.parentId());
   }
 
   @Test
@@ -207,7 +220,7 @@ public class TracerTest extends BaseTest {
         .buildSpan("my-operation")
         .withTag("tk", "tv")
         .startManual();
-    for (Map.Entry<String, ?> tag : span.reportable().tags()) {
+    for (Map.Entry<String, ?> tag : span.tags()) {
       assertEquals("tk", tag.getKey());
       assertEquals("tv", tag.getValue());
     }
@@ -219,7 +232,7 @@ public class TracerTest extends BaseTest {
         .buildSpan("my-operation")
         .withTag("tk", true)
         .startManual();
-    for (Map.Entry<String, ?> tag : span.reportable().tags()) {
+    for (Map.Entry<String, ?> tag : span.tags()) {
       assertEquals("tk", tag.getKey());
       assertEquals(true, tag.getValue());
     }
@@ -231,7 +244,7 @@ public class TracerTest extends BaseTest {
         .buildSpan("my-operation")
         .withTag("tk", 123)
         .startManual();
-    for (Map.Entry<String, ?> tag : span.reportable().tags()) {
+    for (Map.Entry<String, ?> tag : span.tags()) {
       assertEquals("tk", tag.getKey());
       assertEquals(123, tag.getValue());
     }
@@ -243,7 +256,7 @@ public class TracerTest extends BaseTest {
         .buildSpan("my-operation")
         .withStartTimestamp(123000)
         .startManual();
-    assertEquals(123, span.reportable().startMillis());
+    assertEquals(123, span.startMillis());
   }
 
   @Test
@@ -252,7 +265,7 @@ public class TracerTest extends BaseTest {
         .buildSpan("my-operation")
         .withStartTimestamp(123000)
         .start();
-    assertEquals(123, span.reportable().startMillis());
+    assertEquals(123, span.startMillis());
   }
 
   @Test
@@ -528,5 +541,19 @@ public class TracerTest extends BaseTest {
         ((SpanContext) active.context()).traceId());
     assertEquals(((SpanContext) span.context()).spanId(),
         ((SpanContext) active.context()).spanId());
+  }
+
+  @Test
+  public void testStartWithActiveParent() {
+    Tracer tracer = defaultTracer();
+    val parent = tracer
+        .buildSpan("test-op")
+        .startActive();
+    val span = tracer
+        .buildSpan("test-child")
+        .startManual();
+
+    assertEquals(((SpanContext)parent.context()).traceId(), span.traceId());
+    assertEquals(((SpanContext)parent.context()).spanId(), span.parentId());
   }
 }

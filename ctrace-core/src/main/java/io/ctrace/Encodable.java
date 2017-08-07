@@ -22,11 +22,15 @@ public interface Encodable {
 
   Iterable<Map.Entry<String, Object>> tags();
 
+  String encodedTags();
+
   LogEntry log();
 
   Iterable<LogEntry> logs();
 
   Iterable<Map.Entry<String, String>> baggage();
+
+  String encodedBaggage();
 
   String prefix();
 

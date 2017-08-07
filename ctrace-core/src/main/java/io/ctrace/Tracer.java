@@ -197,8 +197,11 @@ public final class Tracer implements io.opentracing.Tracer {
     return this.propagator.extract(format, carrier);
   }
 
-  void report(Reportable reportable) {
+  void report(Reportable reportable, boolean flush) {
     this.reporter.report(reportable);
+    if (flush) {
+      this.reporter.flush();
+    }
   }
 
   boolean singleSpanOutput() {

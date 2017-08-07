@@ -7,6 +7,7 @@ import io.ctrace.Keys;
 import io.ctrace.LogEntry;
 import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.core.LogEvent;
@@ -88,16 +89,18 @@ public class CtraceLayout extends AbstractStringLayout {
     // 2. Get global active span.
     // We'll go with #1 for now...
 
-    Map<String, Object> fields = new HashMap<>();
+    Map<String, Object> fields = new LinkedHashMap<>();
     fields.put("message",
                event.getMessage()
                     .getFormattedMessage());
-    fields.put("level", event.getLevel());
+    fields.put("level", event.getLevel().name());
     Throwable t = event.getThrown();
     if (t != null) {
       fields.put("event", "error");
       fields.put("error.kind", "Throwable");
       fields.put("error.object", t.toString());
+    } else {
+      fields.put("event", "log");
     }
 
     // TODO: Add NDC ??
@@ -165,9 +168,9 @@ public class CtraceLayout extends AbstractStringLayout {
     private final long startMillis;
     private final long finishMillis;
     private final long duration;
-    private final Iterable<Map.Entry<String, Object>> tags;
     private final LogEntry log;
-    private final Iterable<Map.Entry<String, String>> baggage;
+    private final String encodedTags;
+    private final String encodedBaggage;
 
     private LayoutEncodable(ReadOnlyStringMap ctx, LogEntry log) {
       this.traceId = ctx.getValue(Keys.TRACE_ID);
@@ -175,12 +178,12 @@ public class CtraceLayout extends AbstractStringLayout {
       this.parentId = ctx.getValue(Keys.PARENT_ID);
       this.service = ctx.getValue(Keys.SERVICE);
       this.operation = ctx.getValue(Keys.OPERATION);
-      this.startMillis = ctx.getValue(Keys.START);
-      this.finishMillis = ctx.getValue(Keys.FINISH);
-      this.duration = ctx.getValue(Keys.DURATION);
-      this.tags = ctx.getValue(Keys.TAGS);
+      this.startMillis = toLong(ctx.getValue(Keys.START));
+      this.finishMillis = toLong(ctx.getValue(Keys.FINISH));
+      this.duration = toLong(ctx.getValue(Keys.DURATION));
+      this.encodedTags = ctx.getValue(Keys.TAGS);
+      this.encodedBaggage = ctx.getValue(Keys.BAGGAGE);
       this.log = log;
-      this.baggage = ctx.getValue(Keys.BAGGAGE);
     }
 
     @Override
@@ -225,7 +228,7 @@ public class CtraceLayout extends AbstractStringLayout {
 
     @Override
     public Iterable<Map.Entry<String, Object>> tags() {
-      return this.tags;
+      return null;
     }
 
     @Override
@@ -241,7 +244,7 @@ public class CtraceLayout extends AbstractStringLayout {
 
     @Override
     public Iterable<Map.Entry<String, String>> baggage() {
-      return this.baggage;
+      return null;
     }
 
     @Override
@@ -252,6 +255,23 @@ public class CtraceLayout extends AbstractStringLayout {
     @Override
     public void setPrefix(String prefix) {
       // NO OP
+    }
+
+    @Override
+    public String encodedTags() {
+      return this.encodedTags;
+    }
+
+    @Override
+    public String encodedBaggage() {
+      return this.encodedBaggage;
+    }
+
+    private long toLong(String s) {
+      if (s == null || s.isEmpty()) {
+        return 0;
+      }
+      return Long.parseLong(s);
     }
   }
 }

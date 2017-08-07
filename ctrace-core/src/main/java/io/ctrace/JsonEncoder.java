@@ -1,7 +1,10 @@
 package io.ctrace;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.Map.Entry;
+import lombok.val;
 
 /**
  * Encodes span into array of bytes in JSON UTF-8 format.
@@ -52,6 +55,13 @@ public class JsonEncoder implements Encoder {
     }
   }
 
+  @Override
+  public String encodeTags(Encodable e) {
+    val builder = new StringBuilder();
+    encodeTags(builder, e);
+    return builder.toString();
+  }
+
   private static void encodeTags(StringBuilder builder, Encodable e) {
     Iterable<Map.Entry<String, Object>> tags = e.tags();
     if (tags == null) {
@@ -80,6 +90,13 @@ public class JsonEncoder implements Encoder {
       }
     }
     builder.append("}");
+  }
+
+  @Override
+  public String encodeBaggage(Encodable e) {
+    val builder = new StringBuilder();
+    encodeBaggage(builder, e);
+    return builder.toString();
   }
 
   private static void encodeBaggage(StringBuilder builder, Encodable e) {
@@ -171,9 +188,19 @@ public class JsonEncoder implements Encoder {
 
     encodePrefix(builder, e);
     encodeFinish(builder, e);
-    encodeTags(builder, e);
-    encodeBaggage(builder, e);
     encodeLogs(builder, e);
+    val encodedTags = e.encodedTags();
+    val encodedBaggage = e.encodedBaggage();
+    if (encodedTags != null) {
+      builder.append(encodedTags);
+    } else {
+      encodeTags(builder, e);
+    }
+    if (encodedBaggage != null) {
+      builder.append(encodedBaggage);
+    } else {
+      encodeBaggage(builder, e);
+    }
     encodeSuffix(builder);
     return builder.toString();
   }

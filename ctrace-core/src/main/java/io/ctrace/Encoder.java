@@ -1,8 +1,5 @@
 package io.ctrace;
 
-/**
- * Created by a50r on 7/14/17.
- */
 public interface Encoder {
 
   /**
@@ -14,4 +11,8 @@ public interface Encoder {
   String encodeToString(Encodable e);
 
   byte[] encodeToBytes(Encodable e);
+
+  String encodeTags(Encodable e);
+
+  String encodeBaggage(Encodable e);
 }
