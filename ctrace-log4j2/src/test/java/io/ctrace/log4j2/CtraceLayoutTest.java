@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 
-import io.ctrace.Keys;
+import io.ctrace.Span;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import lombok.val;
@@ -105,16 +105,16 @@ public class CtraceLayoutTest {
     this.rootLogger.addAppender(appender);
     this.rootLogger.setLevel(Level.DEBUG);
 
-    ThreadContext.put(Keys.TRACE_ID, "abc");
-    ThreadContext.put(Keys.SPAN_ID, "def");
-    ThreadContext.put(Keys.PARENT_ID, "ghi");
-    ThreadContext.put(Keys.START, "123");
-    ThreadContext.put(Keys.FINISH, "124");
-    ThreadContext.put(Keys.DURATION, "1");
-    ThreadContext.put(Keys.SERVICE, "svc");
-    ThreadContext.put(Keys.OPERATION, "op");
-    ThreadContext.put(Keys.TAGS, ",\"tags\":{\"t\":\"v\"}");
-    ThreadContext.put(Keys.BAGGAGE, ",\"baggage\":{\"b\":\"v\"}");
+    ThreadContext.put(Span.TRACE_ID, "abc");
+    ThreadContext.put(Span.SPAN_ID, "def");
+    ThreadContext.put(Span.PARENT_ID, "ghi");
+    ThreadContext.put(Span.START, "123");
+    ThreadContext.put(Span.FINISH, "124");
+    ThreadContext.put(Span.DURATION, "1");
+    ThreadContext.put(Span.SERVICE, "svc");
+    ThreadContext.put(Span.OPERATION, "op");
+    ThreadContext.put(Span.TAGS, ",\"tags\":{\"t\":\"v\"}");
+    ThreadContext.put(Span.BAGGAGE, ",\"baggage\":{\"b\":\"v\"}");
 
     this.rootLogger.info("test message");
 
@@ -145,10 +145,10 @@ public class CtraceLayoutTest {
     this.rootLogger.addAppender(appender);
     this.rootLogger.setLevel(Level.DEBUG);
 
-    ThreadContext.put(Keys.TRACE_ID, "abc");
-    ThreadContext.put(Keys.SPAN_ID, "def");
-    ThreadContext.put(Keys.START, "123");
-    ThreadContext.put(Keys.OPERATION, "op");
+    ThreadContext.put(Span.TRACE_ID, "abc");
+    ThreadContext.put(Span.SPAN_ID, "def");
+    ThreadContext.put(Span.START, "123");
+    ThreadContext.put(Span.OPERATION, "op");
 
     this.rootLogger.debug("test message");
 
@@ -193,10 +193,10 @@ public class CtraceLayoutTest {
     this.rootLogger.addAppender(appender);
     this.rootLogger.setLevel(Level.DEBUG);
 
-    ThreadContext.put(Keys.TRACE_ID, "abc");
-    ThreadContext.put(Keys.SPAN_ID, "def");
-    ThreadContext.put(Keys.START, "123");
-    ThreadContext.put(Keys.OPERATION, "op");
+    ThreadContext.put(Span.TRACE_ID, "abc");
+    ThreadContext.put(Span.SPAN_ID, "def");
+    ThreadContext.put(Span.START, "123");
+    ThreadContext.put(Span.OPERATION, "op");
 
     try {
       throw new Exception("test exception");

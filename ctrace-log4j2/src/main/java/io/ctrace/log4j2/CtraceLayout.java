@@ -1,15 +1,13 @@
 package io.ctrace.log4j2;
 
-import io.ctrace.Encodable;
 import io.ctrace.Encoder;
 import io.ctrace.JsonEncoder;
-import io.ctrace.Keys;
-import io.ctrace.LogEntry;
+import io.ctrace.Log;
+import io.ctrace.PreEncodedSpan;
 import java.nio.charset.Charset;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
+import lombok.val;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.ConfigurationException;
@@ -18,18 +16,18 @@ import org.apache.logging.log4j.core.config.plugins.PluginBuilderAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
 import org.apache.logging.log4j.core.config.plugins.PluginConfiguration;
 import org.apache.logging.log4j.core.layout.AbstractStringLayout;
-import org.apache.logging.log4j.util.ReadOnlyStringMap;
 
 
 public class CtraceLayout extends AbstractStringLayout {
+
   private static final Encoder encoder = new JsonEncoder();
 
   /**
    * Builds a new layout.
    *
-   * @param config   the configuration
-   * @param charset  the charset used to encode the header bytes, footer bytes and anything else
-   *                 that needs to be converted from strings to bytes.
+   * @param config the configuration
+   * @param charset the charset used to encode the header bytes, footer bytes and anything else
+   *     that needs to be converted from strings to bytes.
    */
   private CtraceLayout(Configuration config, Charset charset) {
     super(config, charset, null, null);
@@ -90,9 +88,10 @@ public class CtraceLayout extends AbstractStringLayout {
     // We'll go with #1 for now...
 
     Map<String, Object> fields = new LinkedHashMap<>();
+
     fields.put("message",
-               event.getMessage()
-                    .getFormattedMessage());
+        event.getMessage()
+            .getFormattedMessage());
     fields.put("level", event.getLevel().name());
     Throwable t = event.getThrown();
     if (t != null) {
@@ -104,16 +103,23 @@ public class CtraceLayout extends AbstractStringLayout {
     }
 
     // TODO: Add NDC ??
-    LogEntry log = new LogEntry(event.getTimeMillis(), fields);
-    LayoutEncodable encodable = new LayoutEncodable(event.getContextData(), log);
+    val ctx = event.getContextData();
+    val log = new Log(event.getTimeMillis(), fields);
+    val encoded = new PreEncodedSpan(
+        ctx.getValue(PreEncodedSpan.START),
+        ctx.getValue(PreEncodedSpan.FINISH),
+        ctx.getValue(PreEncodedSpan.TAGS),
+        ctx.getValue(PreEncodedSpan.BAGGAGE)
+    );
 
-    if (encodable.traceId == null || encodable.spanId == null) {
+    if (encoded.start() == null || encoded.start().isEmpty()) {
       return "CTRACE: Missing Trace Context";
     }
-    return encoder.encodeToString(encodable);
+    return encoder.encodeToString(encoded, log);
   }
 
   public static class Builder implements org.apache.logging.log4j.core.util.Builder<CtraceLayout> {
+
     @PluginBuilderAttribute
     private Charset charset = Charset.defaultCharset();
 
@@ -135,7 +141,8 @@ public class CtraceLayout extends AbstractStringLayout {
     /**
      * Build with configuration.
      *
-     * @param configuration The Configuration. Some Converters require access to the Interpolator.
+     * @param configuration The Configuration. Some Converters require access to the
+     *     Interpolator.
      */
     public Builder withConfiguration(final Configuration configuration) {
       this.configuration = configuration;
@@ -147,8 +154,7 @@ public class CtraceLayout extends AbstractStringLayout {
      * unspecified attributes for the object.
      *
      * @return the configured instance.
-     * @throws ConfigurationException if there was an error building the
-     *                                object.
+     * @throws ConfigurationException if there was an error building the object.
      */
     @Override
     public CtraceLayout build() {
@@ -156,122 +162,6 @@ public class CtraceLayout extends AbstractStringLayout {
         configuration = new DefaultConfiguration();
       }
       return new CtraceLayout(configuration, charset);
-    }
-  }
-
-  private class LayoutEncodable implements Encodable {
-    private final String traceId;
-    private final String spanId;
-    private final String parentId;
-    private final String service;
-    private final String operation;
-    private final long startMillis;
-    private final long finishMillis;
-    private final long duration;
-    private final LogEntry log;
-    private final String encodedTags;
-    private final String encodedBaggage;
-
-    private LayoutEncodable(ReadOnlyStringMap ctx, LogEntry log) {
-      this.traceId = ctx.getValue(Keys.TRACE_ID);
-      this.spanId = ctx.getValue(Keys.SPAN_ID);
-      this.parentId = ctx.getValue(Keys.PARENT_ID);
-      this.service = ctx.getValue(Keys.SERVICE);
-      this.operation = ctx.getValue(Keys.OPERATION);
-      this.startMillis = toLong(ctx.getValue(Keys.START));
-      this.finishMillis = toLong(ctx.getValue(Keys.FINISH));
-      this.duration = toLong(ctx.getValue(Keys.DURATION));
-      this.encodedTags = ctx.getValue(Keys.TAGS);
-      this.encodedBaggage = ctx.getValue(Keys.BAGGAGE);
-      this.log = log;
-    }
-
-    @Override
-    public String traceId() {
-      return this.traceId;
-    }
-
-    @Override
-    public String spanId() {
-      return this.spanId;
-    }
-
-    @Override
-    public String parentId() {
-      return this.parentId;
-    }
-
-    @Override
-    public String service() {
-      return this.service;
-    }
-
-    @Override
-    public String operation() {
-      return this.operation;
-    }
-
-    @Override
-    public long startMillis() {
-      return this.startMillis;
-    }
-
-    @Override
-    public long finishMillis() {
-      return this.finishMillis;
-    }
-
-    @Override
-    public long duration() {
-      return this.duration;
-    }
-
-    @Override
-    public Iterable<Map.Entry<String, Object>> tags() {
-      return null;
-    }
-
-    @Override
-    public LogEntry log() {
-      return this.log;
-    }
-
-    @Override
-    public Iterable<LogEntry> logs() {
-      // Expect Multi Event mode
-      return null;
-    }
-
-    @Override
-    public Iterable<Map.Entry<String, String>> baggage() {
-      return null;
-    }
-
-    @Override
-    public String prefix() {
-      return null;
-    }
-
-    @Override
-    public void setPrefix(String prefix) {
-      // NO OP
-    }
-
-    @Override
-    public String encodedTags() {
-      return this.encodedTags;
-    }
-
-    @Override
-    public String encodedBaggage() {
-      return this.encodedBaggage;
-    }
-
-    private long toLong(String s) {
-      if (s == null || s.isEmpty()) {
-        return 0;
-      }
-      return Long.parseLong(s);
     }
   }
 }

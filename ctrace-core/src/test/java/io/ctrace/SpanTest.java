@@ -9,10 +9,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import lombok.val;
+import org.junit.Assert;
 import org.junit.Test;
 
 
@@ -67,7 +68,7 @@ public class SpanTest extends BaseTest {
         null);
     boolean a = false;
     boolean b = false;
-    for (Map.Entry<String, Object> t : span.tags()) {
+    for (Map.Entry<String, ?> t : span.tags()) {
       if (Objects.equals(t.getKey(), "ta") && !a) {
         assertEquals("ta-val", t.getValue());
         a = true;
@@ -103,42 +104,6 @@ public class SpanTest extends BaseTest {
   }
 
   @Test
-  public void testConstructorLog() {
-    Span span = new Span(defaultTracer(),
-        null,
-        null,
-        123000,
-        null,
-        null);
-    assertEquals(123,
-        span.log()
-            .timestampMillis());
-    for (Map.Entry<String, ?> f : span.log()
-        .fields()) {
-      assertEquals("event", f.getKey());
-      assertEquals("Start-Span", f.getValue());
-    }
-  }
-
-  @Test
-  public void testConstructorLogWithSingleEvent() {
-    Span span = new Span(singleEventTracer(),
-        null,
-        null,
-        123000,
-        null,
-        null);
-    ArrayList<LogEntry> logs = (ArrayList<LogEntry>) span.logs();
-    assertEquals(1, logs.size());
-    LogEntry log = logs.get(0);
-    assertEquals(123, log.timestampMillis());
-    for (Map.Entry<String, ?> f : log.fields()) {
-      assertEquals("event", f.getKey());
-      assertEquals("Start-Span", f.getValue());
-    }
-  }
-
-  @Test
   public void testSetTagString() {
     Span span = new Span(defaultTracer(),
         null,
@@ -148,7 +113,7 @@ public class SpanTest extends BaseTest {
         null);
     span.setTag("ta", "ta-val");
     boolean a = false;
-    for (Map.Entry<String, Object> t : span.tags()) {
+    for (Map.Entry<String, ?> t : span.tags()) {
       if (Objects.equals(t.getKey(), "ta") && !a) {
         assertEquals("ta-val", t.getValue());
         a = true;
@@ -168,7 +133,7 @@ public class SpanTest extends BaseTest {
         null);
     span.setTag("ta", true);
     boolean a = false;
-    for (Map.Entry<String, Object> t : span.tags()) {
+    for (Map.Entry<String, ?> t : span.tags()) {
       if (Objects.equals(t.getKey(), "ta") && !a) {
         assertEquals(true, t.getValue());
         a = true;
@@ -188,7 +153,7 @@ public class SpanTest extends BaseTest {
         null);
     span.setTag("ta", 345);
     boolean a = false;
-    for (Map.Entry<String, Object> t : span.tags()) {
+    for (Map.Entry<String, ?> t : span.tags()) {
       if (Objects.equals(t.getKey(), "ta") && !a) {
         assertEquals(345, t.getValue());
         a = true;
@@ -210,13 +175,11 @@ public class SpanTest extends BaseTest {
     Map<String, String> fields = new HashMap<>();
     fields.put("la", "lv");
     span.log(fields);
-    assertTrue(span.log()
-        .timestampMillis() >= now);
-    for (Map.Entry<String, ?> f : span.log()
-        .fields()) {
-      assertEquals("la", f.getKey());
-      assertEquals("lv", f.getValue());
-    }
+    assertFalse(this.logger.logs().isEmpty());
+    val log = this.logger.logs().get(0);
+    assertTrue(log.timestampMillis() >= now);
+    assertEquals("la", log.fields()[0].key());
+    assertEquals("lv", log.fields()[0].value());
   }
 
   @Test
@@ -229,13 +192,11 @@ public class SpanTest extends BaseTest {
         null,
         null);
     span.log("my-event");
-    assertTrue(span.log()
-        .timestampMillis() >= now);
-    for (Map.Entry<String, ?> f : span.log()
-        .fields()) {
-      assertEquals("event", f.getKey());
-      assertEquals("my-event", f.getValue());
-    }
+    assertFalse(this.logger.logs().isEmpty());
+    val log = this.logger.logs().get(0);
+    assertTrue(log.timestampMillis() >= now);
+    assertEquals("event", log.fields()[0].key());
+    assertEquals("my-event", log.fields()[0].value());
   }
 
   @Test
@@ -288,22 +249,13 @@ public class SpanTest extends BaseTest {
         null);
     //noinspection deprecation
     span.log("my-event", "payload");
-    assertTrue(span.log()
-        .timestampMillis() >= now);
-    boolean e = false;
-    boolean p = false;
-    for (Map.Entry<String, ?> f : span.log()
-        .fields()) {
-      if (Objects.equals(f.getKey(), "event") && !e) {
-        assertEquals("my-event", f.getValue());
-        e = true;
-      } else if (Objects.equals(f.getKey(), "payload") && !p) {
-        assertEquals("payload", f.getValue());
-        p = true;
-      } else {
-        fail();
-      }
-    }
+    assertTrue(this.logger.logged());
+    val log = this.logger.logs().get(0);
+    assertTrue(log.timestampMillis() >= now);
+    assertEquals("event", log.fields()[0].key());
+    assertEquals("my-event", log.fields()[0].value());
+    assertEquals("payload", log.fields()[1].key());
+    assertEquals("payload", log.fields()[1].value());
   }
 
   @Test
@@ -319,14 +271,10 @@ public class SpanTest extends BaseTest {
     assertThat(span.finishMillis(), greaterThanOrEqualTo(now));
     assertThat(span.duration(), greaterThanOrEqualTo(Tools.nowMillis() - now));
     assertThat(span.duration(), greaterThan((long) 0));
-    assertEquals(span.finishMillis(),
-        span.log()
-            .timestampMillis());
-    for (Map.Entry<String, ?> f : span.log()
-        .fields()) {
-      assertEquals("event", f.getKey());
-      assertEquals("Stop-Span", f.getValue());
-    }
+    val log = this.logger.logs().get(0);
+    assertEquals(span.finishMillis(), log.timestampMillis());
+    assertEquals("event", log.fields()[0].key());
+    assertEquals("Stop-Span", log.fields()[0].value());
   }
 
   @Test
@@ -343,15 +291,65 @@ public class SpanTest extends BaseTest {
   }
 
   @Test
-  public void testFlushOnFinish() {
+  public void testLogFinishedOnFinish() {
     Span span = new Span(defaultTracer(),
         null,
         "op",
         0,
         null,
         null);
-    assertFalse(this.reporter.flushed());
+    assertFalse(this.logger.finished());
     span.finish();
-    assertTrue(this.reporter.flushed());
+    assertTrue(this.logger.finished());
+  }
+
+  @Test
+  public void testTraceIdKey() {
+    Assert.assertEquals("ctrace-trace-id", Span.TRACE_ID);
+  }
+
+  @Test
+  public void testSpanIdKey() {
+    Assert.assertEquals("ctrace-span-id", Span.SPAN_ID);
+  }
+
+  @Test
+  public void testParentIdKey() {
+    Assert.assertEquals("ctrace-parent-id", Span.PARENT_ID);
+  }
+
+  @Test
+  public void testServiceKey() {
+    Assert.assertEquals("ctrace-service", Span.SERVICE);
+  }
+
+  @Test
+  public void testOperationKey() {
+    Assert.assertEquals("ctrace-operation", Span.OPERATION);
+  }
+
+  @Test
+  public void testStartKey() {
+    Assert.assertEquals("ctrace-start", Span.START);
+  }
+
+  @Test
+  public void testFinishKey() {
+    Assert.assertEquals("ctrace-finish", Span.FINISH);
+  }
+
+  @Test
+  public void testDurationKey() {
+    Assert.assertEquals("ctrace-duration", Span.DURATION);
+  }
+
+  @Test
+  public void testTagsKey() {
+    Assert.assertEquals("ctrace-tags", Span.TAGS);
+  }
+
+  @Test
+  public void testBaggageKey() {
+    Assert.assertEquals("ctrace-bag", Span.BAGGAGE);
   }
 }

@@ -2,10 +2,11 @@ package io.ctrace;
 
 import static java.lang.Math.floorDiv;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import lombok.Synchronized;
 
 /**
  * Represents an in-flight Span that's <strong>manually propagated</strong> within the given
@@ -15,10 +16,29 @@ import java.util.Map.Entry;
  *
  * @see io.opentracing.ActiveSpan for automatic propagation (recommended for most intstrumentation!)
  */
-public class Span extends AbstractReportable implements io.opentracing.Span {
+public class Span implements io.opentracing.Span {
+
+  public static final String TRACE_ID = "ctrace-trace-id";
+  public static final String SPAN_ID = "ctrace-span-id";
+  public static final String PARENT_ID = "ctrace-parent-id";
+  public static final String SERVICE = "ctrace-service";
+  public static final String OPERATION = "ctrace-operation";
+  public static final String START = "ctrace-start";
+  public static final String FINISH = "ctrace-finish";
+  public static final String DURATION = "ctrace-duration";
+  public static final String TAGS = "ctrace-tags";
+  public static final String BAGGAGE = "ctrace-bag";
 
   private Tracer tracer;
   private SpanContext context;
+  private String serviceName;
+  private String operationName;
+  private String parentId;
+  private long startMillis;
+  private long finishMillis;
+  private long duration;
+  private boolean finished;
+  private Map<String, ? super Object> tags;
 
   Span(Tracer tracer,
       String serviceName,
@@ -44,7 +64,7 @@ public class Span extends AbstractReportable implements io.opentracing.Span {
     this.tracer = tracer;
     this.startMillis = floorDiv(startMicros, 1000);
 
-    this.log(startMicros, "Start-Span");
+    this.tracer.logger().start(this, new Log(this.startMillis, "Start-Span"));
   }
 
   /**
@@ -55,35 +75,59 @@ public class Span extends AbstractReportable implements io.opentracing.Span {
    * @return the SpanContext that encapsulates Span state that should propagate across process
    *     boundaries.
    */
-  @Override
   public SpanContext context() {
     return this.context;
   }
 
-
-  @Override
   public String traceId() {
     return this.context.traceId();
   }
 
-  @Override
   public String spanId() {
     return this.context.spanId();
   }
 
-  @Override
+  public String parentId() {
+    return this.parentId;
+  }
+
+  public String service() {
+    return this.serviceName;
+  }
+
+  public String operation() {
+    return this.operationName;
+  }
+
+  public long startMillis() {
+    return this.startMillis;
+  }
+
+  @Synchronized
+  public long finishMillis() {
+    return this.finishMillis;
+  }
+
+  @Synchronized
+  public long duration() {
+    return this.duration;
+  }
+
+  /**
+   * Get tags.
+   *
+   * @return iterable of tags map entries
+   */
+  @Synchronized
+  public Iterable<? extends Map.Entry<String, ?>> tags() {
+    if (this.tags == null) {
+      return null;
+    }
+    return this.tags.entrySet();
+  }
+
   public Iterable<Entry<String, String>> baggage() {
     return this.context.baggageItems();
-  }
-
-  @Override
-  public String encodedTags() {
-    return null;
-  }
-
-  @Override
-  public String encodedBaggage() {
-    return null;
   }
 
   /**
@@ -110,9 +154,10 @@ public class Span extends AbstractReportable implements io.opentracing.Span {
     return this.setTagInternal(key, value);
   }
 
+  @Synchronized
   private synchronized Span setTagInternal(String key, Object value) {
     if (this.tags == null) {
-      this.tags = new HashMap<>();
+      this.tags = new LinkedHashMap<>();
     }
     this.tags.put(key, value);
     return this;
@@ -141,7 +186,7 @@ public class Span extends AbstractReportable implements io.opentracing.Span {
    */
   @Override
   public Span log(Map<String, ?> fields) {
-    return this.logInternal(Tools.nowMillis(), fields, false);
+    return this.log(new Log(fields));
   }
 
   /**
@@ -159,7 +204,7 @@ public class Span extends AbstractReportable implements io.opentracing.Span {
    */
   @Override
   public Span log(long timestampMicros, Map<String, ?> fields) {
-    return this.logInternal(floorDiv(timestampMicros, 1000), fields, false);
+    return this.log(new Log(floorDiv(timestampMicros, 1000), fields));
   }
 
   /**
@@ -175,7 +220,7 @@ public class Span extends AbstractReportable implements io.opentracing.Span {
    */
   @Override
   public Span log(String event) {
-    return this.logInternal(Tools.nowMillis(), event, false);
+    return this.log(new Log(event));
   }
 
   /**
@@ -193,7 +238,7 @@ public class Span extends AbstractReportable implements io.opentracing.Span {
    */
   @Override
   public Span log(long timestampMicros, String event) {
-    return this.logInternal(floorDiv(timestampMicros, 1000), event, false);
+    return this.log(new Log(floorDiv(timestampMicros, 1000), event));
   }
 
   /**
@@ -205,12 +250,7 @@ public class Span extends AbstractReportable implements io.opentracing.Span {
    */
   @Override
   public Span log(String eventName, Object payload) {
-    Map<String, Object> fields = new HashMap<>();
-    fields.put("event", eventName);
-    if (payload != null) {
-      fields.put("payload", payload);
-    }
-    return this.logInternal(Tools.nowMillis(), fields, false);
+    return this.log(new Log(eventName, payload));
   }
 
   /**
@@ -222,36 +262,13 @@ public class Span extends AbstractReportable implements io.opentracing.Span {
    */
   @Override
   public Span log(long timestampMicroseconds, String eventName, Object payload) {
-    Map<String, Object> fields = new HashMap<>();
-    fields.put("event", eventName);
-    if (payload != null) {
-      fields.put("payload", payload);
-    }
-    return this.logInternal(floorDiv(timestampMicroseconds, 1000), fields, false);
+    return this.log(new Log(floorDiv(timestampMicroseconds, 1000), eventName, payload));
   }
 
-  private synchronized Span logInternal(
-      long timestampMillis, Map<String, ?> fields, boolean flush) {
-    LogEntry logEntry = new LogEntry(timestampMillis, fields);
-    if (this.tracer.singleSpanOutput()) {
-      // Single Event: Add log to list.
-      if (this.logs == null) {
-        this.logs = new ArrayList<>();
-      }
-      this.logs.add(logEntry);
-      return this;
-    }
-
-    // Multi Event:  Set single log and report.
-    this.log = logEntry;
-    this.tracer.report(this, flush);
+  @Synchronized
+  private Span log(Log log) {
+    this.tracer.logger().log(this, log);
     return this;
-  }
-
-  private Span logInternal(long timestampMillis, String event, boolean flush) {
-    Map<String, String> fields = new HashMap<>(1);
-    fields.put("event", event);
-    return this.logInternal(timestampMillis, fields, flush);
   }
 
   /**
@@ -288,6 +305,7 @@ public class Span extends AbstractReportable implements io.opentracing.Span {
   /**
    * Sets the string name for the logical operation this span represents.
    *
+   * <p>NOTE: this is not a thread safe operation.
    * @return this Span instance, for chaining
    */
   @Override
@@ -324,9 +342,16 @@ public class Span extends AbstractReportable implements io.opentracing.Span {
     this.finishInternal(floorDiv(finishMicros, 1000));
   }
 
+  @Synchronized
+  public boolean finished() {
+    return this.finished;
+  }
+
+  @Synchronized
   private void finishInternal(long finishMillis) {
+    this.finished = true;
     this.finishMillis = finishMillis;
     this.duration = finishMillis - this.startMillis;
-    this.logInternal(finishMillis, "Stop-Span", true);
+    this.tracer.logger().finish(this, new Log(finishMillis, "Stop-Span"));
   }
 }

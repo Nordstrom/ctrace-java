@@ -9,21 +9,21 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
 /**
- * StreamReporter tests.
+ * StreamLogger tests.
  */
-public class StreamReporterTest extends BaseTest {
+public class StreamLoggerTest extends BaseTest {
 
   @Test
-  public void testStreamReporter() {
+  public void testStart() {
     ByteArrayOutputStream stream = new ByteArrayOutputStream();
-    Reporter reporter = new StreamReporter(stream, new JsonEncoder());
+    Logger logger = new StreamLogger(stream, new JsonEncoder());
     Span span = new Span(defaultTracer(),
         "TestService",
         "TestOperation",
         123000,
         null,
         new SpanContext("abc", "def", null));
-    reporter.report(span);
+    logger.start(span, new Log(123, "Start-Span"));
     String encoded = new String(stream.toByteArray(), StandardCharsets.UTF_8);
 
     String pattern =

@@ -1,18 +1,29 @@
 package io.ctrace;
 
+import com.sun.xml.internal.bind.v2.runtime.output.Encoded;
+
 public interface Encoder {
+
+  /**
+   * Encode a span into a string.
+   *
+   * @param span - span data to encode
+   * @param log - log entry to encode
+   * @return encoded string.
+   */
+  String encodeToString(Span span, Log log);
 
   /**
    * Encode a span into an array of bytes.
    *
-   * @param e - span data to encode
-   * @return array of encoded bytes.
+   * @param span - span data to encode
+   * @param log - log entry to encode
+   * @return encoded array of bytes.
    */
-  String encodeToString(Encodable e);
+  byte[] encodeToBytes(Span span, Log log);
 
-  byte[] encodeToBytes(Encodable e);
+  PreEncodedSpan preEncode(Span span);
 
-  String encodeTags(Encodable e);
-
-  String encodeBaggage(Encodable e);
+  String encodeToString(PreEncodedSpan span, Log log);
+  byte[] encodeToBytes(PreEncodedSpan span, Log log);
 }

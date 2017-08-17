@@ -139,31 +139,31 @@ public class TracerTest extends BaseTest {
     assertEquals("service-name", tracer.serviceName());
   }
 
-  @Test
-  public void testBuilderWithOutputStreamAndSingleSpanOutput() {
-    ByteArrayOutputStream stream = new ByteArrayOutputStream();
-    Tracer tracer = Tracer.withStream(stream)
-        .withSingleSpanOutput(true)
-        .build();
-    Span span = new Span(tracer,
-        "TestService",
-        "TestOperation",
-        123000,
-        null,
-        new SpanContext("abc", "def", null));
-    tracer.report(span, false);
-    String encoded = new String(stream.toByteArray(), StandardCharsets.UTF_8);
-
-    String pattern =
-        "\\{\"traceId\":\"abc\",\"spanId\":\"[0-9a-f]{16}\",\"parentId\":\"def\","
-            + "\"service\":\"TestService\",\"operation\":\"TestOperation\","
-            + "\"start\":123,"
-            + "\"logs\":\\[\\{\"timestamp\":123,\"event\":\"Start-Span\"\\}\\]\\}\n";
-
-    assertThat(encoded, matchesPattern(pattern));
-    assertEquals(true, tracer.singleSpanOutput());
-    assertEquals(null, tracer.serviceName());
-  }
+//  @Test
+//  public void testBuilderWithOutputStreamAndSingleSpanOutput() {
+//    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+//    Tracer tracer = Tracer.withStream(stream)
+//        .withSingleSpanOutput(true)
+//        .build();
+//    Span span = new Span(tracer,
+//        "TestService",
+//        "TestOperation",
+//        123000,
+//        null,
+//        new SpanContext("abc", "def", null));
+//    tracer.report(span, false);
+//    String encoded = new String(stream.toByteArray(), StandardCharsets.UTF_8);
+//
+//    String pattern =
+//        "\\{\"traceId\":\"abc\",\"spanId\":\"[0-9a-f]{16}\",\"parentId\":\"def\","
+//            + "\"service\":\"TestService\",\"operation\":\"TestOperation\","
+//            + "\"start\":123,"
+//            + "\"logs\":\\[\\{\"timestamp\":123,\"event\":\"Start-Span\"\\}\\]\\}\n";
+//
+//    assertThat(encoded, matchesPattern(pattern));
+//    assertEquals(true, tracer.singleSpanOutput());
+//    assertEquals(null, tracer.serviceName());
+//  }
 
   @Test
   public void testBuildSpan() {
