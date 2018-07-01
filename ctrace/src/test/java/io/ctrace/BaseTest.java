@@ -4,16 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Base for all unit test classes. */
-public class BaseTest {
+class BaseTest {
 
-  protected TestLogger logger = new TestLogger();
+  TestLogger logger = new TestLogger();
 
-  protected Tracer defaultTracer() {
-    return Tracer.builder().logger(logger).serviceName("TestService").build();
+  Tracer.TracerBuilder defaultTracerBuilder() {
+    return Tracer.builder().logger(logger).serviceName("TestService");
   }
 
-  protected Tracer singleEventTracer() {
-    return Tracer.builder().logger(logger).serviceName("TestService").build();
+  Tracer defaultTracer() {
+    return defaultTracerBuilder().build();
   }
 
   public class TestLogger implements Logger {
@@ -49,19 +49,19 @@ public class BaseTest {
       this.activated = true;
     }
 
-    public List<Log> logs() {
+    List<Log> logs() {
       return this.logs;
     }
 
-    public boolean started() {
+    boolean started() {
       return this.started;
     }
 
-    public boolean finished() {
+    boolean finished() {
       return this.finished;
     }
 
-    public boolean logged() {
+    boolean logged() {
       return this.logged;
     }
   }

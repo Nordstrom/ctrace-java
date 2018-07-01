@@ -5,13 +5,13 @@ import static org.junit.Assert.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** StreamLogger tests. */
 public class StreamLoggerTest extends BaseTest {
 
   @Test
-  public void testStart() {
+  void testStart() {
     ByteArrayOutputStream stream = new ByteArrayOutputStream();
     Logger logger = new StreamLogger(stream, new JsonEncoder());
     Span span =

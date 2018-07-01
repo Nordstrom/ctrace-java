@@ -5,13 +5,13 @@ import static org.junit.Assert.assertThat;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** JsonEncoder tests. */
 public class JsonEncoderTest extends BaseTest {
 
   @Test
-  public void testNewSpan() {
+  void testNewSpan() {
     String encoded =
         new String(
             new JsonEncoder()
@@ -35,7 +35,7 @@ public class JsonEncoderTest extends BaseTest {
   }
 
   @Test
-  public void testNewSpanWithTags() {
+  void testNewSpanWithTags() {
     Map<String, Object> tags = new HashMap<>();
     tags.put("t1", "tval1");
     tags.put("t2", 55);
@@ -64,7 +64,7 @@ public class JsonEncoderTest extends BaseTest {
   }
 
   @Test
-  public void testNewSpanWithBaggage() {
+  void testNewSpanWithBaggage() {
     Map<String, String> bag = new HashMap<>();
     bag.put("a", "av");
     bag.put("b", "bv");
@@ -92,7 +92,7 @@ public class JsonEncoderTest extends BaseTest {
   }
 
   @Test
-  public void testNewFinished() {
+  void testNewFinished() {
     Span span = new Span(defaultTracer(), "TestService", "TestOperation", 123000, null, null);
     span.finish(133000);
     String encoded = new String(new JsonEncoder().encodeToBytes(span, new Log(133, "Stop-Span")));

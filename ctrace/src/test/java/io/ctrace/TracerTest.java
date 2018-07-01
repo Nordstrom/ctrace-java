@@ -18,52 +18,52 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.val;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Tracer tests. */
-public class TracerTest extends BaseTest {
+class TracerTest extends BaseTest {
 
   @Test
-  public void testBuilderWithServiceName() {
-    Tracer tracer = new Tracer("service-name");
+  void testBuilderWithServiceName() {
+    val tracer = new Tracer("service-name");
     assertEquals("service-name", tracer.serviceName());
   }
 
   @Test
-  public void testBuilderWithPropagator() {
-    Propagator prop = new Propagator(null, null, null, null);
-    Tracer tracer = Tracer.builder().propagator(prop).build();
+  void testBuilderWithPropagator() {
+    val prop = new Propagator();
+    val tracer = defaultTracerBuilder().propagator(prop).build();
     assertSame(prop, tracer.propagator());
   }
 
   @Test
-  public void testBuilderWithTraceIdExtractHeaders() {
-    Tracer tracer = Tracer.builder().traceIdExtractHeader("h1").build();
+  void testBuilderWithTraceIdExtractHeaders() {
+    val tracer = defaultTracerBuilder().traceIdExtractHeader("h1").build();
     assertTrue(tracer.propagator().traceIdExtractHeaders().contains("h1"));
   }
 
   @Test
-  public void testBuilderWithSpanIdExtractHeaders() {
-    Tracer tracer = Tracer.builder().spanIdExtractHeader("h1").build();
+  void testBuilderWithSpanIdExtractHeaders() {
+    val tracer = defaultTracerBuilder().spanIdExtractHeader("h1").build();
     assertTrue(tracer.propagator().spanIdExtractHeaders().contains("h1"));
   }
 
   @Test
-  public void testBuilderWithTraceIdInjectHeaders() {
-    Tracer tracer = Tracer.builder().traceIdInjectHeader("h1").build();
+  void testBuilderWithTraceIdInjectHeaders() {
+    val tracer = defaultTracerBuilder().traceIdInjectHeader("h1").build();
     assertTrue(tracer.propagator().traceIdInjectHeaders().contains("h1"));
   }
 
   @Test
-  public void testBuilderWithSpanIdInjectHeaders() {
-    Tracer tracer = Tracer.builder().spanIdInjectHeader("h1").build();
+  void testBuilderWithSpanIdInjectHeaders() {
+    val tracer = defaultTracerBuilder().spanIdInjectHeader("h1").build();
     assertTrue(tracer.propagator().spanIdInjectHeaders().contains("h1"));
   }
 
   @Test
-  public void testBuilderWithOutputStream() {
-    ByteArrayOutputStream stream = new ByteArrayOutputStream();
-    Tracer tracer = Tracer.builder().stream(stream).serviceName("service-name").build();
+  void testBuilderWithOutputStream() {
+    val stream = new ByteArrayOutputStream();
+    val tracer = Tracer.builder().stream(stream).serviceName("service-name").build();
     new Span(
         tracer, "TestService", "TestOperation", 123000, null, new SpanContext("abc", "def", null));
     String encoded = new String(stream.toByteArray(), StandardCharsets.UTF_8);
@@ -79,13 +79,13 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testBuildSpan() {
+  void testBuildSpan() {
     Span span = (Span) defaultTracer().buildSpan("my-operation").start();
     assertEquals("my-operation", span.operationName());
   }
 
   @Test
-  public void testBuildSpanAsChild() {
+  void testBuildSpanAsChild() {
     Span span =
         (Span)
             defaultTracer()
@@ -97,7 +97,7 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testBuildSpanAsChildSpan() {
+  void testBuildSpanAsChildSpan() {
     Tracer tracer = defaultTracer();
     Span parent = new Span(tracer, null, null, 0, null, null);
     Span span = (Span) tracer.buildSpan("my-operation").asChildOf(parent).start();
@@ -106,7 +106,7 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testBuildSpanAddReferenceChildOf() {
+  void testBuildSpanAddReferenceChildOf() {
     Span span =
         (Span)
             defaultTracer()
@@ -118,7 +118,7 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testBuildSpanAddReferenceFollowsFrom() {
+  void testBuildSpanAddReferenceFollowsFrom() {
     Span span =
         (Span)
             defaultTracer()
@@ -130,7 +130,7 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testBuildSpanWithTagString() {
+  void testBuildSpanWithTagString() {
     Span span = (Span) defaultTracer().buildSpan("my-operation").withTag("tk", "tv").start();
     for (Map.Entry<String, ?> tag : span.tags()) {
       assertEquals("tk", tag.getKey());
@@ -139,7 +139,7 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testBuildSpanWithTagBoolean() {
+  void testBuildSpanWithTagBoolean() {
     Span span = (Span) defaultTracer().buildSpan("my-operation").withTag("tk", true).start();
     for (Map.Entry<String, ?> tag : span.tags()) {
       assertEquals("tk", tag.getKey());
@@ -148,7 +148,7 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testBuildSpanWithTagNumber() {
+  void testBuildSpanWithTagNumber() {
     Span span = (Span) defaultTracer().buildSpan("my-operation").withTag("tk", 123).start();
     for (Map.Entry<String, ?> tag : span.tags()) {
       assertEquals("tk", tag.getKey());
@@ -157,19 +157,19 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testBuildSpanWithStartTimestamp() {
+  void testBuildSpanWithStartTimestamp() {
     Span span = (Span) defaultTracer().buildSpan("my-operation").withStartTimestamp(123000).start();
     assertEquals(123, span.startMillis());
   }
 
   @Test
-  public void testBuildSpanWithStartDeprecated() {
+  void testBuildSpanWithStartDeprecated() {
     Span span = (Span) defaultTracer().buildSpan("my-operation").withStartTimestamp(123000).start();
     assertEquals(123, span.startMillis());
   }
 
   @Test
-  public void testInjectHeaders() {
+  void testInjectHeaders() {
     Map<String, String> headers = new HashMap<>();
     defaultTracer()
         .inject(
@@ -177,12 +177,12 @@ public class TracerTest extends BaseTest {
             Format.Builtin.HTTP_HEADERS,
             new TextMapInjectAdapter(headers));
 
-    assertEquals("abc", headers.get("Ct-Trace-Id"));
-    assertEquals("def", headers.get("Ct-Span-Id"));
+    assertEquals("abc", headers.get("X-B3-Traceid"));
+    assertEquals("def", headers.get("X-B3-Spanid"));
   }
 
   @Test
-  public void testInjectHeaderBaggage() {
+  void testInjectHeaderBaggage() {
     Map<String, String> headers = new HashMap<>();
     Map<String, String> baggage = new HashMap<>();
     baggage.put("bag1", "val1");
@@ -192,12 +192,12 @@ public class TracerTest extends BaseTest {
             new SpanContext("abc", "def", baggage),
             Format.Builtin.HTTP_HEADERS,
             new TextMapInjectAdapter(headers));
-    assertEquals("val1", headers.get("Ct-Bag-bag1"));
-    assertEquals("val2", headers.get("Ct-Bag-bag2"));
+    assertEquals("val1", headers.get("X-B3-Bag-bag1"));
+    assertEquals("val2", headers.get("X-B3-Bag-bag2"));
   }
 
   @Test
-  public void testInjectTextMap() {
+  void testInjectTextMap() {
     Map<String, String> map = new HashMap<>();
     defaultTracer()
         .inject(
@@ -205,12 +205,12 @@ public class TracerTest extends BaseTest {
             Format.Builtin.TEXT_MAP,
             new TextMapInjectAdapter(map));
 
-    assertEquals("abc", map.get("ct-trace-id"));
-    assertEquals("def", map.get("ct-span-id"));
+    assertEquals("abc", map.get("X-B3-Traceid"));
+    assertEquals("def", map.get("X-B3-Spanid"));
   }
 
   @Test
-  public void testInjectTextMapBaggage() {
+  void testInjectTextMapBaggage() {
     Map<String, String> map = new HashMap<>();
     Map<String, String> baggage = new HashMap<>();
     baggage.put("bag1", "val1");
@@ -220,15 +220,15 @@ public class TracerTest extends BaseTest {
             new SpanContext("abc", "def", baggage),
             Format.Builtin.TEXT_MAP,
             new TextMapInjectAdapter(map));
-    assertEquals("val1", map.get("ct-bag-bag1"));
-    assertEquals("val2", map.get("ct-bag-bag2"));
+    assertEquals("val1", map.get("X-B3-Bag-bag1"));
+    assertEquals("val2", map.get("X-B3-Bag-bag2"));
   }
 
   @Test
-  public void testExtractHeaders() {
+  void testExtractHeaders() {
     Map<String, String> headers = new HashMap<>();
-    headers.put("Ct-Trace-Id", "abc");
-    headers.put("Ct-Span-Id", "def");
+    headers.put("X-B3-Traceid", "abc");
+    headers.put("X-B3-Spanid", "def");
     SpanContext ctx =
         defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
 
@@ -237,12 +237,12 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testExtractHeaderBaggage() {
+  void testExtractHeaderBaggage() {
     Map<String, String> headers = new HashMap<>();
-    headers.put("Ct-Trace-Id", "abc");
-    headers.put("Ct-Span-Id", "def");
-    headers.put("Ct-Bag-Bag1", "val1");
-    headers.put("Ct-Bag-Bag2", "val2");
+    headers.put("X-B3-Traceid", "abc");
+    headers.put("X-B3-Spanid", "def");
+    headers.put("X-B3-Bag-Bag1", "val1");
+    headers.put("X-B3-Bag-Bag2", "val2");
     SpanContext ctx =
         defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
     assertEquals("val1", ctx.getBaggageItem("Bag1"));
@@ -250,10 +250,10 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testExtractTextMap() {
+  void testExtractTextMap() {
     Map<String, String> map = new HashMap<>();
-    map.put("ct-trace-id", "abc");
-    map.put("Ct-span-id", "def");
+    map.put("X-b3-Traceid", "abc");
+    map.put("X-b3-spanid", "def");
     SpanContext ctx =
         defaultTracer().extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(map));
 
@@ -262,12 +262,12 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testExtractTextMapBaggage() {
+  void testExtractTextMapBaggage() {
     Map<String, String> map = new HashMap<>();
-    map.put("ct-trace-id", "abc");
-    map.put("Ct-span-id", "def");
-    map.put("ct-bag-bag1", "val1");
-    map.put("Ct-Bag-Bag2", "val2");
+    map.put("x-b3-traceid", "abc");
+    map.put("x-b3-spanid", "def");
+    map.put("x-b3-bag-bag1", "val1");
+    map.put("x-b3-Bag-Bag2", "val2");
     SpanContext ctx =
         defaultTracer().extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(map));
     assertEquals("val1", ctx.getBaggageItem("bag1"));
@@ -275,122 +275,12 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testDefaultExtractHeaders1() {
-    Map<String, String> headers = new HashMap<>();
-    headers.put("X-Correlation-Id", "abc");
-    headers.put("X-Request-Id", "def");
-    SpanContext ctx =
-        defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
-    assertEquals("abc", ctx.traceId());
-    assertEquals("def", ctx.spanId());
-  }
-
-  @Test
-  public void testDefaultExtractHeaders2() {
-    Map<String, String> headers = new HashMap<>();
-    headers.put("Correlation-Id", "abc");
-    headers.put("Request-Id", "def");
-    SpanContext ctx =
-        defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
-    assertEquals("abc", ctx.traceId());
-    assertEquals("def", ctx.spanId());
-  }
-
-  @Test
-  public void testDefaultExtractHeaders3() {
-    Map<String, String> headers = new HashMap<>();
-    headers.put("CorrelationId", "abc");
-    headers.put("RequestId", "def");
-    SpanContext ctx =
-        defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
-    assertEquals("abc", ctx.traceId());
-    assertEquals("def", ctx.spanId());
-  }
-
-  @Test
-  public void testDefaultExtractHeaders4() {
-    Map<String, String> headers = new HashMap<>();
-    headers.put("Correlation_Id", "abc");
-    headers.put("Request_Id", "def");
-    SpanContext ctx =
-        defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
-    assertEquals("abc", ctx.traceId());
-    assertEquals("def", ctx.spanId());
-  }
-
-  @Test
-  public void testDefaultExtractHeaders5() {
-    Map<String, String> headers = new HashMap<>();
-    headers.put("X_Correlation_Id", "abc");
-    headers.put("x_Request_Id", "def");
-    SpanContext ctx =
-        defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
-    assertEquals("abc", ctx.traceId());
-    assertEquals("def", ctx.spanId());
-  }
-
-  @Test
-  public void testDefaultExtractHeaders6() {
-    Map<String, String> headers = new HashMap<>();
-    headers.put("X-Trace-Id", "abc");
-    headers.put("X-Span-Id", "def");
-    SpanContext ctx =
-        defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
-    assertEquals("abc", ctx.traceId());
-    assertEquals("def", ctx.spanId());
-  }
-
-  @Test
-  public void testDefaultExtractHeaders7() {
-    Map<String, String> headers = new HashMap<>();
-    headers.put("X_Trace_Id", "abc");
-    headers.put("X_Span_Id", "def");
-    SpanContext ctx =
-        defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
-    assertEquals("abc", ctx.traceId());
-    assertEquals("def", ctx.spanId());
-  }
-
-  @Test
-  public void testDefaultExtractHeaders8() {
-    Map<String, String> headers = new HashMap<>();
-    headers.put("Trace-Id", "abc");
-    headers.put("Span-Id", "def");
-    SpanContext ctx =
-        defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
-    assertEquals("abc", ctx.traceId());
-    assertEquals("def", ctx.spanId());
-  }
-
-  @Test
-  public void testDefaultExtractHeaders9() {
-    Map<String, String> headers = new HashMap<>();
-    headers.put("Trace_Id", "abc");
-    headers.put("Span_Id", "def");
-    SpanContext ctx =
-        defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
-    assertEquals("abc", ctx.traceId());
-    assertEquals("def", ctx.spanId());
-  }
-
-  @Test
-  public void testDefaultExtractHeaders10() {
-    Map<String, String> headers = new HashMap<>();
-    headers.put("TraceId", "abc");
-    headers.put("SpanId", "def");
-    SpanContext ctx =
-        defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
-    assertEquals("abc", ctx.traceId());
-    assertEquals("def", ctx.spanId());
-  }
-
-  @Test
-  public void testCustomExtractHeaders() {
+  void testCustomExtractHeaders() {
     Map<String, String> headers = new HashMap<>();
     headers.put("my-trace-id", "abc");
     headers.put("my-span-id", "def");
     SpanContext ctx =
-        Tracer.builder()
+        defaultTracerBuilder()
             .traceIdExtractHeader("my-trace-id")
             .traceIdExtractHeader("your-trace-id")
             .spanIdExtractHeader("your-span-id")
@@ -402,9 +292,9 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testExtractWithOnlyTraceId() {
+  void testExtractWithOnlyTraceId() {
     Map<String, String> headers = new HashMap<>();
-    headers.put("Ct-Trace-Id", "abc");
+    headers.put("X-B3-Traceid", "abc");
     SpanContext ctx =
         defaultTracer().extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(headers));
     assertEquals("abc", ctx.traceId());
@@ -412,9 +302,9 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testCustomInjectHeaders() {
+  void testCustomInjectHeaders() {
     Map<String, String> headers = new HashMap<>();
-    Tracer.builder()
+    defaultTracerBuilder()
         .traceIdInjectHeader("My-trace-id")
         .traceIdInjectHeader("your-trace-id")
         .spanIdInjectHeader("your-Span-id")
@@ -423,15 +313,13 @@ public class TracerTest extends BaseTest {
             new SpanContext("abc", "def", null),
             Format.Builtin.HTTP_HEADERS,
             new TextMapInjectAdapter(headers));
-    assertEquals("abc", headers.get("Ct-Trace-Id"));
     assertEquals("abc", headers.get("My-trace-id"));
     assertEquals("abc", headers.get("your-trace-id"));
-    assertEquals("def", headers.get("Ct-Span-Id"));
     assertEquals("def", headers.get("your-Span-id"));
   }
 
   @Test
-  public void testStartActive() {
+  void testStartActive() {
     Tracer tracer = defaultTracer();
     try (Scope scope = tracer.buildSpan("test-op").startActive(true)) {
       val span = scope.span();
@@ -452,7 +340,7 @@ public class TracerTest extends BaseTest {
   }
 
   @Test
-  public void testStartWithActiveParent() {
+  void testStartWithActiveParent() {
     val tracer = defaultTracer();
     val parent = tracer.buildSpan("test-op").startActive(true).span();
     val span = tracer.buildSpan("test-child").start();

@@ -13,31 +13,31 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import lombok.val;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Span tests. */
-public class SpanTest extends BaseTest {
+class SpanTest extends BaseTest {
 
   @Test
-  public void testServiceName() {
+  void testServiceName() {
     Span span = new Span(defaultTracer(), "sn", null, 0, null, null);
     assertEquals("sn", span.serviceName());
   }
 
   @Test
-  public void testOperationName() {
+  void testOperationName() {
     Span span = new Span(defaultTracer(), null, "on", 0, null, null);
     assertEquals("on", span.operationName());
   }
 
   @Test
-  public void testStartMicros() {
+  void testStartMicros() {
     Span span = new Span(defaultTracer(), null, null, 123000, null, null);
     assertEquals(123, span.startMillis());
   }
 
   @Test
-  public void testTags() {
+  void testTags() {
     Map<String, Object> tags = new HashMap<>();
     tags.put("ta", "ta-val");
     tags.put("tb", 345);
@@ -58,19 +58,19 @@ public class SpanTest extends BaseTest {
   }
 
   @Test
-  public void testTraceId() {
+  void testTraceId() {
     Span span = new Span(defaultTracer(), null, null, 0, null, null);
     assertThat(span.context().traceId(), matchesPattern("[0-9a-f]{16}"));
   }
 
   @Test
-  public void testSpanId() {
+  void testSpanId() {
     Span span = new Span(defaultTracer(), null, null, 0, null, null);
     assertThat(span.context().spanId(), matchesPattern("[0-9a-f]{16}"));
   }
 
   @Test
-  public void testSetTagString() {
+  void testSetTagString() {
     Span span = new Span(defaultTracer(), null, null, 0, null, null);
     span.setTag("ta", "ta-val");
     boolean a = false;
@@ -85,7 +85,7 @@ public class SpanTest extends BaseTest {
   }
 
   @Test
-  public void testSetTagBoolean() {
+  void testSetTagBoolean() {
     Span span = new Span(defaultTracer(), null, null, 0, null, null);
     span.setTag("ta", true);
     boolean a = false;
@@ -100,7 +100,7 @@ public class SpanTest extends BaseTest {
   }
 
   @Test
-  public void testSetTagInt() {
+  void testSetTagInt() {
     Span span = new Span(defaultTracer(), null, null, 0, null, null);
     span.setTag("ta", 345);
     boolean a = false;
@@ -115,7 +115,7 @@ public class SpanTest extends BaseTest {
   }
 
   @Test
-  public void testLog() {
+  void testLog() {
     Long now = Tools.nowMillis();
     Span span = new Span(defaultTracer(), null, null, 0, null, null);
     Map<String, String> fields = new HashMap<>();
@@ -128,7 +128,7 @@ public class SpanTest extends BaseTest {
   }
 
   @Test
-  public void testLogEvent() {
+  void testLogEvent() {
     Long now = Tools.nowMillis();
     Span span = new Span(defaultTracer(), null, null, 0, null, null);
     span.log("my-event");
@@ -139,14 +139,14 @@ public class SpanTest extends BaseTest {
   }
 
   @Test
-  public void testSetGetBaggage() {
+  void testSetGetBaggage() {
     Span span = new Span(defaultTracer(), null, null, 0, null, null);
     span.setBaggageItem("bag1", "val1");
     assertEquals("val1", span.getBaggageItem("bag1"));
   }
 
   @Test
-  public void testParentBaggage() {
+  void testParentBaggage() {
     SpanContext parentContext = new SpanContext();
     parentContext.setBaggageItem("pbag1", "pval1");
     parentContext.setBaggageItem("pbag2", "pval2");
@@ -156,14 +156,14 @@ public class SpanTest extends BaseTest {
   }
 
   @Test
-  public void testSetOperationName() {
+  void testSetOperationName() {
     Span span = new Span(defaultTracer(), null, "old-op", 0, null, null);
     span.setOperationName("new-op");
     assertEquals("new-op", span.operationName());
   }
 
   @Test
-  public void testFinish() {
+  void testFinish() {
     Long now = Tools.nowMillis();
     Span span = new Span(defaultTracer(), null, null, 0, null, null);
     span.finish();
@@ -176,13 +176,13 @@ public class SpanTest extends BaseTest {
   }
 
   @Test
-  public void testContext() {
+  void testContext() {
     Span span = new Span(defaultTracer(), null, null, 0, null, null);
     assertEquals(span.context().traceId(), span.context().traceId());
   }
 
   @Test
-  public void testLogFinishedOnFinish() {
+  void testLogFinishedOnFinish() {
     Span span = new Span(defaultTracer(), null, "op", 0, null, null);
     assertFalse(this.logger.finished());
     span.finish();

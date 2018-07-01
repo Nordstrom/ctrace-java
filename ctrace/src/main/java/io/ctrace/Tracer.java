@@ -25,13 +25,6 @@ import lombok.val;
 public final class Tracer implements io.opentracing.Tracer {
 
   private static final String SERVICE_NAME_VAR = "ctrace_service_name";
-  private static final ImmutableSet<String> TRACE_ID_EXTRACT_HEADERS =
-      ImmutableSet.of("x-b3-traceid");
-  private static final ImmutableSet<String> SPAN_ID_EXTRACT_HEADERS =
-      ImmutableSet.of("x-b3-spanid");
-  private static final ImmutableSet<String> TRACE_ID_INJECT_HEADERS =
-      ImmutableSet.of("X-B3-Traceid");
-  private static final ImmutableSet<String> SPAN_ID_INJECT_HEADERS = ImmutableSet.of("X-B3-Spanid");
 
   private final Propagator propagator;
 
@@ -44,7 +37,7 @@ public final class Tracer implements io.opentracing.Tracer {
   }
 
   public Tracer(String serviceName) {
-    this(null, null, null, serviceName, null, null, null, null, null);
+    this(null, null, null, serviceName, null, null, null, null, null, null, null);
   }
 
   @Builder
@@ -56,8 +49,10 @@ public final class Tracer implements io.opentracing.Tracer {
       ScopeManager scopeManager,
       @Singular ImmutableSet<String> traceIdExtractHeaders,
       @Singular ImmutableSet<String> spanIdExtractHeaders,
+      String baggageInjectPrefix,
       @Singular ImmutableSet<String> traceIdInjectHeaders,
-      @Singular ImmutableSet<String> spanIdInjectHeaders) {
+      @Singular ImmutableSet<String> spanIdInjectHeaders,
+      String baggageExtractPrefix) {
     if (serviceName == null) {
       serviceName = System.getenv(SERVICE_NAME_VAR);
     }
@@ -70,30 +65,14 @@ public final class Tracer implements io.opentracing.Tracer {
     }
 
     if (propagator == null) {
-      if (traceIdInjectHeaders == null) {
-        traceIdInjectHeaders = TRACE_ID_INJECT_HEADERS;
-      }
-      if (spanIdInjectHeaders == null) {
-        spanIdInjectHeaders = SPAN_ID_INJECT_HEADERS;
-      }
-      if (traceIdExtractHeaders == null) {
-        traceIdExtractHeaders = TRACE_ID_EXTRACT_HEADERS;
-      }
-      if (spanIdExtractHeaders == null) {
-        spanIdExtractHeaders = SPAN_ID_EXTRACT_HEADERS;
-      }
       propagator =
           new Propagator(
               traceIdInjectHeaders,
               spanIdInjectHeaders,
-              traceIdExtractHeaders
-                  .stream()
-                  .map(String::toLowerCase)
-                  .collect(ImmutableSet.toImmutableSet()),
-              spanIdExtractHeaders
-                  .stream()
-                  .map(String::toLowerCase)
-                  .collect(ImmutableSet.toImmutableSet()));
+              baggageInjectPrefix,
+              traceIdExtractHeaders,
+              spanIdExtractHeaders,
+              baggageExtractPrefix);
     }
 
     if (scopeManager == null) {
