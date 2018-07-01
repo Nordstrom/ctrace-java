@@ -1,7 +1,7 @@
 rootProject.name = 'ctrace'
 include 'ctrace-core'
-include 'ctrace-log4j2'
-include 'ctrace-spring-cloud-sleuth'
-include 'ctrace-demo-spring'
-include 'ctrace-spring-autoconfig'
+//include 'ctrace-log4j2'
+//include 'ctrace-spring-cloud-sleuth'
+//include 'ctrace-demo-spring'
+//include 'ctrace-spring-autoconfig'
 

@@ -4,33 +4,29 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import lombok.val;
 
-/**
- * Encodes span into array of bytes in JSON UTF-8 format.
- */
+/** Encodes span into array of bytes in JSON UTF-8 format. */
 public class JsonEncoder implements Encoder {
 
   private static void encodeStart(StringBuilder builder, Span span) {
-    builder.append("{\"traceId\":\"")
-        .append(span.traceId())
+    builder
+        .append("{\"traceId\":\"")
+        .append(span.context().traceId())
         .append("\",\"spanId\":\"")
-        .append(span.spanId())
+        .append(span.context().spanId())
         .append("\",");
 
     String parentId = span.parentId();
     if (parentId != null) {
-      builder.append("\"parentId\":\"")
-          .append(parentId)
-          .append("\",");
+      builder.append("\"parentId\":\"").append(parentId).append("\",");
     }
 
-    String serviceName = span.service();
+    String serviceName = span.serviceName();
     if (serviceName != null) {
-      builder.append("\"service\":\"")
-          .append(serviceName)
-          .append("\",");
+      builder.append("\"service\":\"").append(serviceName).append("\",");
     }
-    builder.append("\"operation\":\"")
-        .append(span.operation())
+    builder
+        .append("\"operation\":\"")
+        .append(span.operationName())
         .append("\",\"start\":")
         .append(span.startMillis());
   }
@@ -38,7 +34,8 @@ public class JsonEncoder implements Encoder {
   private static void encodeFinish(StringBuilder builder, Span span) {
     long finish = span.finishMillis();
     if (finish > 0) {
-      builder.append(",\"finish\":")
+      builder
+          .append(",\"finish\":")
           .append(finish)
           .append(",\"duration\":")
           .append(span.duration());
@@ -58,9 +55,7 @@ public class JsonEncoder implements Encoder {
       } else {
         builder.append(',');
       }
-      builder.append('"')
-          .append(entry.getKey())
-          .append("\":");
+      builder.append('"').append(entry.getKey()).append("\":");
       Object value = entry.getValue();
       boolean quote = value instanceof String;
       if (quote) {
@@ -89,7 +84,8 @@ public class JsonEncoder implements Encoder {
       } else {
         builder.append(',');
       }
-      builder.append('"')
+      builder
+          .append('"')
           .append(entry.getKey())
           .append("\":\"")
           .append(entry.getValue())
@@ -99,15 +95,12 @@ public class JsonEncoder implements Encoder {
   }
 
   private static void encodeLog(StringBuilder builder, Log entry) {
-    builder.append(",\"log\":{\"timestamp\":")
-        .append(entry.timestampMillis());
+    builder.append(",\"log\":{\"timestamp\":").append(entry.timestampMillis());
 
     val fields = entry.fields();
-    for (val field : fields) {
-      builder.append(",\"")
-          .append(field.key())
-          .append("\":");
-      Object value = field.value();
+    for (val field : fields.entrySet()) {
+      builder.append(",\"").append(field.getKey()).append("\":");
+      Object value = field.getValue();
       boolean quote = value instanceof String;
       if (quote) {
         builder.append('"');
@@ -121,8 +114,7 @@ public class JsonEncoder implements Encoder {
   }
 
   private static void encodeSuffix(StringBuilder builder) {
-    builder.append('}')
-        .append(System.lineSeparator());
+    builder.append('}').append(System.lineSeparator());
   }
 
   /**
@@ -146,42 +138,6 @@ public class JsonEncoder implements Encoder {
 
   @Override
   public byte[] encodeToBytes(Span span, Log log) {
-    return this.encodeToString(span, log).getBytes(StandardCharsets.UTF_8);
-  }
-
-  @Override
-  public PreEncodedSpan preEncode(Span span) {
-    val builder = new StringBuilder();
-    encodeStart(builder, span);
-    val start = builder.toString();
-    builder.setLength(0);
-    encodeFinish(builder, span);
-    val finish = builder.toString();
-    builder.setLength(0);
-    encodeTags(builder, span);
-    val tags = builder.toString();
-    builder.setLength(0);
-    encodeBaggage(builder, span);
-    val baggage = builder.toString();
-
-    return new PreEncodedSpan(start, finish, tags, baggage);
-  }
-
-  @Override
-  public String encodeToString(PreEncodedSpan span, Log log) {
-    StringBuilder builder = new StringBuilder();
-
-    builder.append(span.start());
-    builder.append(span.finish());
-    encodeLog(builder, log);
-    builder.append(span.tags());
-    builder.append(span.baggage());
-    encodeSuffix(builder);
-    return null;
-  }
-
-  @Override
-  public byte[] encodeToBytes(PreEncodedSpan span, Log log) {
     return this.encodeToString(span, log).getBytes(StandardCharsets.UTF_8);
   }
 }

@@ -1,118 +1,110 @@
 package io.ctrace;
 
-import io.opentracing.BaseSpan;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import io.opentracing.References;
+import io.opentracing.Scope;
+import io.opentracing.ScopeManager;
 import io.opentracing.propagation.Format;
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
+import io.opentracing.util.ThreadLocalScopeManager;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Singular;
 import lombok.Synchronized;
+import lombok.experimental.Accessors;
+import lombok.val;
 
 /**
- * Tracer is a simple, thin interface for Span creation and propagation across arbitrary
- * transports.
+ * Tracer is a simple, thin interface for Span creation and propagation across arbitrary transports.
  */
+@Accessors(fluent = true)
 public final class Tracer implements io.opentracing.Tracer {
 
   private static final String SERVICE_NAME_VAR = "ctrace_service_name";
-  private static final String[] TRACE_ID_EXTRACT_HEADERS = new String[]{
-      "x-correlation-id",
-      "x_correlation_id",
-      "correlation-id",
-      "correlation_id",
-      "correlationid",
-      "x-trace-id",
-      "x_trace_id",
-      "trace-id",
-      "trace_id",
-      "traceid"
-  };
-  private static final String[] SPAN_ID_EXTRACT_HEADERS = new String[]{
-      "x-request-id",
-      "x_request_id",
-      "request-id",
-      "request_id",
-      "requestid",
-      "x-span-id",
-      "x_span_id",
-      "span-id",
-      "span_id",
-      "spanid"
-  };
-
-  private final ActiveSpanSource activeSpanSource;
+  private static final ImmutableSet<String> TRACE_ID_EXTRACT_HEADERS =
+      ImmutableSet.of("x-b3-traceid");
+  private static final ImmutableSet<String> SPAN_ID_EXTRACT_HEADERS =
+      ImmutableSet.of("x-b3-spanid");
+  private static final ImmutableSet<String> TRACE_ID_INJECT_HEADERS =
+      ImmutableSet.of("X-B3-Traceid");
+  private static final ImmutableSet<String> SPAN_ID_INJECT_HEADERS = ImmutableSet.of("X-B3-Spanid");
 
   private final Propagator propagator;
 
   private final Logger logger;
   private final String serviceName;
-  private final boolean singleSpanOutput;
+  @Getter private final ScopeManager scopeManager;
 
   public Tracer() {
-    this(new TracerBuilder());
+    this(null);
   }
 
-  private Tracer(TracerBuilder builder) {
-    this.activeSpanSource = new ThreadLocalActiveSpanSource(this);
-    if (builder.logger != null) {
-      this.logger = builder.logger;
-    } else {
-      this.logger = new StreamLogger(builder.stream);
+  public Tracer(String serviceName) {
+    this(null, null, null, serviceName, null, null, null, null, null);
+  }
+
+  @Builder
+  private Tracer(
+      Logger logger,
+      OutputStream stream,
+      Propagator propagator,
+      String serviceName,
+      ScopeManager scopeManager,
+      @Singular ImmutableSet<String> traceIdExtractHeaders,
+      @Singular ImmutableSet<String> spanIdExtractHeaders,
+      @Singular ImmutableSet<String> traceIdInjectHeaders,
+      @Singular ImmutableSet<String> spanIdInjectHeaders) {
+    if (serviceName == null) {
+      serviceName = System.getenv(SERVICE_NAME_VAR);
+    }
+    if (logger == null) {
+      if (stream != null) {
+        logger = new StreamLogger(stream, new JsonEncoder());
+      } else {
+        logger = new Slf4jLogger();
+      }
     }
 
-    this.logger.init(new JsonEncoder());
-
-    if (builder.propagator != null) {
-      this.propagator = builder.propagator;
-    } else {
-      this.propagator = new Propagator(builder.traceIdExtractHeaders,
-          builder.spanIdExtractHeaders,
-          builder.traceIdInjectHeaders,
-          builder.spanIdInjectHeaders);
+    if (propagator == null) {
+      if (traceIdInjectHeaders == null) {
+        traceIdInjectHeaders = TRACE_ID_INJECT_HEADERS;
+      }
+      if (spanIdInjectHeaders == null) {
+        spanIdInjectHeaders = SPAN_ID_INJECT_HEADERS;
+      }
+      if (traceIdExtractHeaders == null) {
+        traceIdExtractHeaders = TRACE_ID_EXTRACT_HEADERS;
+      }
+      if (spanIdExtractHeaders == null) {
+        spanIdExtractHeaders = SPAN_ID_EXTRACT_HEADERS;
+      }
+      propagator =
+          new Propagator(
+              traceIdInjectHeaders,
+              spanIdInjectHeaders,
+              traceIdExtractHeaders
+                  .stream()
+                  .map(String::toLowerCase)
+                  .collect(ImmutableSet.toImmutableSet()),
+              spanIdExtractHeaders
+                  .stream()
+                  .map(String::toLowerCase)
+                  .collect(ImmutableSet.toImmutableSet()));
     }
 
-    this.singleSpanOutput = builder.singleSpanOutput;
-    this.serviceName = builder.serviceName;
-  }
+    if (scopeManager == null) {
+      scopeManager = new ThreadLocalScopeManager();
+    }
 
-  public static TracerBuilder withLogger(Logger logger) {
-    return new TracerBuilder().withLogger(logger);
-  }
-
-  public static TracerBuilder withStream(OutputStream stream) {
-    return new TracerBuilder().withStream(stream);
-  }
-
-  public static TracerBuilder withSingleSpanOutput(boolean singleSpanOutput) {
-    return new TracerBuilder().withSingleSpanOutput(singleSpanOutput);
-  }
-
-  public static TracerBuilder withServiceName(String serviceName) {
-    return new TracerBuilder().withServiceName(serviceName);
-  }
-
-  public static TracerBuilder withPropagator(Propagator propagator) {
-    return new TracerBuilder().withPropagator(propagator);
-  }
-
-  public static TracerBuilder withTraceIdExtractHeaders(String... traceIdExtractHeaders) {
-    return new TracerBuilder().withTraceIdExtractHeaders(traceIdExtractHeaders);
-  }
-
-  public static TracerBuilder withSpanIdExtractHeaders(String... spanIdExtractHeaders) {
-    return new TracerBuilder().withSpanIdExtractHeaders(spanIdExtractHeaders);
-  }
-
-  public static TracerBuilder withTraceIdInjectHeaders(String... traceIdInjectHeaders) {
-    return new TracerBuilder().withTraceIdInjectHeaders(traceIdInjectHeaders);
-  }
-
-  public static TracerBuilder withSpanIdInjectHeaders(String... spanIdInjectHeaders) {
-    return new TracerBuilder().withSpanIdInjectHeaders(spanIdInjectHeaders);
+    Preconditions.checkArgument(serviceName != null, "Missing serviceName");
+    this.logger = logger;
+    this.propagator = propagator;
+    this.scopeManager = scopeManager;
+    this.serviceName = serviceName;
   }
 
   /**
@@ -121,6 +113,7 @@ public final class Tracer implements io.opentracing.Tracer {
    * <p>You can override the operationName later via {@link Span#setOperationName(String)}.
    *
    * <p>A contrived example:
+   *
    * <pre><code>
    *   Tracer tracer = ...
    *
@@ -151,6 +144,7 @@ public final class Tracer implements io.opentracing.Tracer {
    * process boundaries.
    *
    * <p>Example:
+   *
    * <pre><code>
    * Tracer tracer = ...
    * Span clientSpan = ...
@@ -160,8 +154,8 @@ public final class Tracer implements io.opentracing.Tracer {
    *
    * @param spanContext the SpanContext instance to inject into the carrier
    * @param format the Format of the carrier
-   * @param carrier the carrier for the SpanContext state. All Tracer.inject() implementations
-   *     must support io.opentracing.propagation.TextMap and java.nio.ByteBuffer.
+   * @param carrier the carrier for the SpanContext state. All Tracer.inject() implementations must
+   *     support io.opentracing.propagation.TextMap and java.nio.ByteBuffer.
    * @see Format
    * @see Format.Builtin
    */
@@ -175,6 +169,7 @@ public final class Tracer implements io.opentracing.Tracer {
    * process boundary.
    *
    * <p>Example:
+   *
    * <pre><code>
    * Tracer tracer = ...
    * TextMap httpHeadersCarrier = new AnHttpHeaderCarrier(httpRequest);
@@ -186,8 +181,8 @@ public final class Tracer implements io.opentracing.Tracer {
    * this will result in an IllegalArgumentException.
    *
    * @param format the Format of the carrier
-   * @param carrier the carrier for the SpanContext state. All Tracer.extract() implementations
-   *     must support io.opentracing.propagation.TextMap and java.nio.ByteBuffer.
+   * @param carrier the carrier for the SpanContext state. All Tracer.extract() implementations must
+   *     support io.opentracing.propagation.TextMap and java.nio.ByteBuffer.
    * @return the SpanContext instance holding context to create a Span.
    * @see Format
    * @see Format.Builtin
@@ -195,10 +190,6 @@ public final class Tracer implements io.opentracing.Tracer {
   @Override
   public <C> SpanContext extract(Format<C> format, C carrier) {
     return this.propagator.extract(format, carrier);
-  }
-
-  boolean singleSpanOutput() {
-    return this.singleSpanOutput;
   }
 
   String serviceName() {
@@ -214,102 +205,31 @@ public final class Tracer implements io.opentracing.Tracer {
   }
 
   /**
-   * Return the {@link ActiveSpan active span}. This does not affect the internal reference count
-   * for the {@link ActiveSpan}.
+   * Return the {@link Span active span}. This does not affect the internal reference count for the
+   * {@link Span}.
    *
-   * <p>If there is an {@link ActiveSpan active span}, it becomes an implicit parent of any
-   * newly-created {@link BaseSpan span} at {@link SpanBuilder#startActive()} time (rather than at
-   * {@link Tracer#buildSpan(String)} time).
+   * <p>If there is an {@link Span active span}, it becomes an implicit parent of any newly-created
+   * {@link Span span} at {@link SpanBuilder#startActive(boolean)} time (rather than at {@link
+   * Tracer#buildSpan(String)} time).
    *
-   * @return the {@link ActiveSpan active span}, or null if none could be found.
+   * @return the {@link Span active span}, or null if none could be found.
    */
   @Override
-  public ActiveSpan activeSpan() {
-    return this.activeSpanSource.activeSpan();
-  }
-
-  /**
-   * Wrap and "make active" a {@link Span} by encapsulating it – and any active state (e.g., MDC
-   * state) in the current thread – in a new {@link ActiveSpan}.
-   *
-   * @param span the Span to wrap in an {@link ActiveSpan}
-   * @return an {@link ActiveSpan} that encapsulates the given {@link Span} and any other {@link
-   *     ActiveSpanSource}-specific context (e.g., the MDC context map)
-   */
-  @Override
-  public ActiveSpan makeActive(io.opentracing.Span span) {
-    return this.activeSpanSource.makeActive((Span)span);
+  public io.opentracing.Span activeSpan() {
+    val scope = this.scopeManager.active();
+    if (scope == null) {
+      return null;
+    }
+    return scope.span();
   }
 
   private SpanContext activeSpanContext() {
-    ActiveSpan handle = this.activeSpan();
+    io.opentracing.Span handle = this.activeSpan();
     if (handle == null) {
       return null;
     }
 
     return (SpanContext) handle.context();
-  }
-
-  public static class TracerBuilder {
-
-    private Propagator propagator;
-    private Logger logger;
-    private OutputStream stream = new FileOutputStream(FileDescriptor.out);
-    private String serviceName = System.getenv(SERVICE_NAME_VAR);
-    private boolean singleSpanOutput;
-    private String[] traceIdExtractHeaders = TRACE_ID_EXTRACT_HEADERS;
-    private String[] spanIdExtractHeaders = SPAN_ID_EXTRACT_HEADERS;
-    private String[] traceIdInjectHeaders = null;
-    private String[] spanIdInjectHeaders = null;
-
-    public TracerBuilder withStream(OutputStream stream) {
-      this.stream = stream;
-      return this;
-    }
-
-    public TracerBuilder withLogger(Logger logger) {
-      this.logger = logger;
-      return this;
-    }
-
-    public TracerBuilder withServiceName(String serviceName) {
-      this.serviceName = serviceName;
-      return this;
-    }
-
-    public TracerBuilder withSingleSpanOutput(boolean multiEvent) {
-      this.singleSpanOutput = multiEvent;
-      return this;
-    }
-
-    public TracerBuilder withPropagator(Propagator propagator) {
-      this.propagator = propagator;
-      return this;
-    }
-
-    public TracerBuilder withTraceIdExtractHeaders(String... traceIdExtractHeaders) {
-      this.traceIdExtractHeaders = traceIdExtractHeaders;
-      return this;
-    }
-
-    public TracerBuilder withSpanIdExtractHeaders(String... spanIdExtractHeaders) {
-      this.spanIdExtractHeaders = spanIdExtractHeaders;
-      return this;
-    }
-
-    public TracerBuilder withTraceIdInjectHeaders(String... traceIdInjectHeaders) {
-      this.traceIdInjectHeaders = traceIdInjectHeaders;
-      return this;
-    }
-
-    public TracerBuilder withSpanIdInjectHeaders(String... spanIdInjectHeaders) {
-      this.spanIdInjectHeaders = spanIdInjectHeaders;
-      return this;
-    }
-
-    public Tracer build() {
-      return new Tracer(this);
-    }
   }
 
   public class SpanBuilder implements io.opentracing.Tracer.SpanBuilder {
@@ -346,7 +266,7 @@ public final class Tracer implements io.opentracing.Tracer {
      * @param parent parent span
      */
     @Override
-    public SpanBuilder asChildOf(BaseSpan<?> parent) {
+    public SpanBuilder asChildOf(io.opentracing.Span parent) {
       return this.asChildOf(parent.context());
     }
 
@@ -354,23 +274,15 @@ public final class Tracer implements io.opentracing.Tracer {
      * Add a reference from the Span being built to a distinct (usually parent) Span. May be called
      * multiple times to represent multiple such References.
      *
-     * <p>If <ul> <li>the {@link Tracer}'s {@link ActiveSpanSource#activeSpan()} is not null,
-     * and</li> <li>no <b>explicit</b> references are added via {@link SpanBuilder#addReference},
-     * and</li> <li>{@link SpanBuilder#ignoreActiveSpan()} is not invoked,</li> </ul> ... then an
-     * inferred {@link References#CHILD_OF} reference is created to the {@link
-     * ActiveSpanSource#activeSpan()} {@link SpanContext} when either {@link
-     * SpanBuilder#startActive()} or {@link SpanBuilder#startManual} is invoked.
-     *
-     * @param referenceType the reference type, typically one of the constants defined in
-     *     References
-     * @param referencedContext the SpanContext being referenced; e.g., for a
-     *     References.CHILD_OF referenceType, the referencedContext is the parent. If
-     *     referencedContext==null, the call to {@link #addReference} is a noop.
+     * @param referenceType the reference type, typically one of the constants defined in References
+     * @param referencedContext the SpanContext being referenced; e.g., for a References.CHILD_OF
+     *     referenceType, the referencedContext is the parent. If referencedContext==null, the call
+     *     to {@link #addReference} is a noop.
      * @see References
      */
     @Override
-    public SpanBuilder addReference(String referenceType,
-        io.opentracing.SpanContext referencedContext) {
+    public SpanBuilder addReference(
+        String referenceType, io.opentracing.SpanContext referencedContext) {
       if (Objects.equals(referenceType, References.CHILD_OF)) {
         return this.asChildOf(referencedContext);
       }
@@ -379,7 +291,7 @@ public final class Tracer implements io.opentracing.Tracer {
 
     /**
      * Do not create an implicit {@link References#CHILD_OF} reference to the {@link
-     * ActiveSpanSource#activeSpan}).
+     * Tracer#activeSpan}).
      */
     @Override
     public SpanBuilder ignoreActiveSpan() {
@@ -440,46 +352,52 @@ public final class Tracer implements io.opentracing.Tracer {
     }
 
     /**
-     * Returns a newly started and activated {@link ActiveSpan}.
+     * Returns a newly started and activated {@link Scope}.
      *
-     * <p>The returned {@link ActiveSpan} supports try-with-resources. For example:
+     * <p>The returned {@link Scope} supports try-with-resources. For example:
+     *
      * <pre><code>
-     *     try (ActiveSpan span = tracer.buildSpan("...").startActive()) {
+     *     try (Scope scope = tracer.buildSpan("...").startActive(true)) {
      *         // (Do work)
-     *         span.setTag( ... );  // etc, etc
-     *     }  // Span finishes automatically unless deferred via {@link ActiveSpan#capture}
+     *         scope.span().setTag( ... );  // etc, etc
+     *     }
+     *     // Span does finishes automatically only when 'finishSpanOnClose' is true
      * </code></pre>
      *
-     * <p>If <ul> <li>the {@link Tracer}'s {@link ActiveSpanSource#activeSpan()} is not null,
-     * and</li> <li>no <b>explicit</b> references are added via {@link SpanBuilder#addReference},
-     * and</li> <li>{@link SpanBuilder#ignoreActiveSpan()} is not invoked,</li> </ul> ... then an
-     * inferred {@link References#CHILD_OF} reference is created to the {@link
-     * ActiveSpanSource#activeSpan()}'s {@link SpanContext} when either {@link
-     * SpanBuilder#startManual()} or {@link SpanBuilder#startActive} is invoked.
+     * <p>If
      *
-     * <p>Note: {@link SpanBuilder#startActive()} is a shorthand for {@code
-     * tracer.makeActive(spanBuilder.startManual())}.
+     * <ul>
+     *   <li>the {@link Tracer}'s {@link ScopeManager#active()} is not null, and
+     *   <li>no <b>explicit</b> references are added via {@link SpanBuilder#addReference}, and
+     *   <li>{@link SpanBuilder#ignoreActiveSpan()} is not invoked,
+     * </ul>
      *
-     * @return an {@link ActiveSpan}, already registered via the {@link ActiveSpanSource}
-     * @see ActiveSpanSource
-     * @see ActiveSpan
+     * <p>... then an inferred {@link References#CHILD_OF} reference is created to the {@link
+     * ScopeManager#active()}'s {@link SpanContext} when either {@link SpanBuilder#start()} or
+     * {@link SpanBuilder#startActive} is invoked.
+     *
+     * <p>Note: {@link SpanBuilder#startActive(boolean)} is a shorthand for {@code
+     * tracer.scopeManager().activate(spanBuilder.start(), finishSpanOnClose)}.
+     *
+     * @param finishSpanOnClose whether span should automatically be finished when {@link
+     *     Scope#close()} is called
+     * @return a {@link Scope}, already registered via the {@link ScopeManager}
+     * @see ScopeManager
+     * @see Scope
      */
     @Override
-    public ActiveSpan startActive() {
-      return Tracer.this.makeActive(this.createSpan());
+    public Scope startActive(boolean finishSpanOnClose) {
+      return Tracer.this.scopeManager.activate(createSpan(), finishSpanOnClose);
     }
 
     /**
-     * Like {@link #startActive()}, but the returned {@link Span} has not been registered via the
-     * {@link ActiveSpanSource}.
+     * Start a span manually.
      *
-     * @return the newly-started Span instance, which has *not* been automatically registered via
-     *     the {@link ActiveSpanSource}
-     * @see SpanBuilder#startActive()
+     * @deprecated use {@link #start} or {@link #startActive} instead.
      */
     @Override
-    public Span startManual() {
-      return this.createSpan();
+    public io.opentracing.Span startManual() {
+      return start();
     }
 
     private Span createSpan() {
@@ -489,22 +407,20 @@ public final class Tracer implements io.opentracing.Tracer {
       if (firstParent == null && !ignoringActiveSpan) {
         firstParent = activeSpanContext();
       }
-      return new Span(Tracer.this,
-          serviceName,
-          operationName,
-          startMicros,
-          tags,
-          firstParent);
+      return new Span(Tracer.this, serviceName, operationName, startMicros, tags, firstParent);
     }
 
     /**
-     * Start the span.
+     * Like {@link SpanBuilder#startActive(boolean)}, but the returned {@link Span} has not been
+     * registered via the {@link ScopeManager}.
      *
-     * @deprecated use {@link #startManual} or {@link #startActive} instead.
+     * @return the newly-started Span instance, which has *not* been automatically registered via
+     *     the {@link ScopeManager}
+     * @see SpanBuilder#startActive(boolean)
      */
     @Override
-    public Span start() {
-      return this.startManual();
+    public io.opentracing.Span start() {
+      return createSpan();
     }
   }
 }

@@ -3,20 +3,14 @@ package io.ctrace;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * StreamLogger encodes and reports the span to an output stream.
- */
+/** StreamLogger encodes and reports the span to an output stream. */
 public class StreamLogger implements Logger {
 
   private OutputStream stream;
   private Encoder encoder;
 
-  public StreamLogger(OutputStream stream) {
+  public StreamLogger(OutputStream stream, Encoder encoder) {
     this.stream = stream;
-  }
-
-  @Override
-  public void init(Encoder encoder) {
     this.encoder = encoder;
   }
 

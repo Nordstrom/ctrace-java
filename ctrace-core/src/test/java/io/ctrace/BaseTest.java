@@ -3,26 +3,17 @@ package io.ctrace;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Base for all unit test classes.
- */
+/** Base for all unit test classes. */
 public class BaseTest {
 
   protected TestLogger logger = new TestLogger();
 
   protected Tracer defaultTracer() {
-    return Tracer
-        .withLogger(logger)
-        .withServiceName("TestService")
-        .build();
+    return Tracer.builder().logger(logger).serviceName("TestService").build();
   }
 
   protected Tracer singleEventTracer() {
-    return Tracer
-        .withLogger(logger)
-        .withServiceName("TestService")
-        .withSingleSpanOutput(true)
-        .build();
+    return Tracer.builder().logger(logger).serviceName("TestService").build();
   }
 
   public class TestLogger implements Logger {
@@ -30,6 +21,8 @@ public class BaseTest {
     private boolean started;
     private boolean finished;
     private boolean logged;
+    private boolean activated;
+    private Encoder encoder;
 
     private ArrayList<Log> logs = new ArrayList<>();
 
@@ -49,6 +42,11 @@ public class BaseTest {
     public void log(Span span, Log log) {
       this.logs.add(log);
       this.logged = true;
+    }
+
+    @Override
+    public void activate(Span span) {
+      this.activated = true;
     }
 
     public List<Log> logs() {

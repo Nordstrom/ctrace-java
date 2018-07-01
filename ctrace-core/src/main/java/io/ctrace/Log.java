@@ -1,11 +1,18 @@
 package io.ctrace;
 
+import com.google.common.collect.ImmutableMap;
+import io.opentracing.log.Fields;
 import java.util.Map;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
+@Accessors(fluent = true)
 public final class Log {
 
-  private final long timestampMillis;
-  private final Field[] fields;
+  @Getter private final long timestampMillis;
+  @Getter private final Map<String, ?> fields;
+  @Getter private final String message;
+  @Getter private String messageKey;
 
   /**
    * Constructor.
@@ -14,9 +21,8 @@ public final class Log {
    * @param event log event
    */
   public Log(long timestampMillis, String event) {
-    this(timestampMillis, new Field[]{new Field<>("event", event)});
+    this(timestampMillis, ImmutableMap.of("event", event));
   }
-
 
   /**
    * Constructor.
@@ -24,32 +30,7 @@ public final class Log {
    * @param event log event
    */
   public Log(String event) {
-    this(Tools.nowMillis(), new Field[]{new Field<>("event", event)});
-  }
-
-  /**
-   * Constructor.
-   * @param event log event
-   * @param payload log payload
-   */
-  public Log(String event, Object payload) {
-    this(Tools.nowMillis(), new Field[]{
-        new Field<>("event", event),
-        new Field<>("payload", payload)
-    });
-  }
-
-  /**
-   * Constructor.
-   * @param timestampMillis timestamp in epoch milliseconds
-   * @param event log event
-   * @param payload log payload
-   */
-  public Log(long timestampMillis, String event, Object payload) {
-    this(timestampMillis, new Field[]{
-        new Field<>("event", event),
-        new Field<>("payload", payload)
-    });
+    this(Tools.nowMillis(), ImmutableMap.of("event", event));
   }
 
   /**
@@ -69,43 +50,16 @@ public final class Log {
    */
   public Log(long timestampMillis, Map<String, ?> fields) {
     this.timestampMillis = timestampMillis;
-    this.fields = new Field[fields.size()];
-    int i = 0;
-    for (Map.Entry<String, ?> entry : fields.entrySet()) {
-      this.fields[i++] = new Field<>(entry.getKey(), entry.getValue());
-    }
-  }
-
-  Log(long timestampMillis, Field[] fields) {
-    this.timestampMillis = timestampMillis;
     this.fields = fields;
-  }
-
-  public long timestampMillis() {
-    return this.timestampMillis;
-  }
-
-  public Field[] fields() {
-    return fields;
-  }
-
-  public static class Field<T> {
-
-    private String key;
-    private T value;
-
-    public Field(String key, T value) {
-      this.key = key;
-      this.value = value;
+    this.messageKey = Fields.MESSAGE;
+    Object message = fields.get(this.messageKey);
+    if (message == null) {
+      this.messageKey = Fields.EVENT;
+      message = fields.get(this.messageKey);
     }
-
-    public String key() {
-      return this.key;
+    if (message == null) {
+      message = "log";
     }
-
-    public T value() {
-      return this.value;
-    }
+    this.message = message.toString();
   }
 }
-

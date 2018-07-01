@@ -1,6 +1,5 @@
 package io.ctrace;
 
-
 import static org.cthul.matchers.CthulMatchers.matchesPattern;
 import static org.junit.Assert.assertThat;
 
@@ -8,21 +7,21 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
-/**
- * StreamLogger tests.
- */
+/** StreamLogger tests. */
 public class StreamLoggerTest extends BaseTest {
 
   @Test
   public void testStart() {
     ByteArrayOutputStream stream = new ByteArrayOutputStream();
     Logger logger = new StreamLogger(stream, new JsonEncoder());
-    Span span = new Span(defaultTracer(),
-        "TestService",
-        "TestOperation",
-        123000,
-        null,
-        new SpanContext("abc", "def", null));
+    Span span =
+        new Span(
+            defaultTracer(),
+            "TestService",
+            "TestOperation",
+            123000,
+            null,
+            new SpanContext("abc", "def", null));
     logger.start(span, new Log(123, "Start-Span"));
     String encoded = new String(stream.toByteArray(), StandardCharsets.UTF_8);
 

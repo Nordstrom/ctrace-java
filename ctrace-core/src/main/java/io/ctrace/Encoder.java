@@ -1,7 +1,5 @@
 package io.ctrace;
 
-import com.sun.xml.internal.bind.v2.runtime.output.Encoded;
-
 public interface Encoder {
 
   /**
@@ -21,9 +19,4 @@ public interface Encoder {
    * @return encoded array of bytes.
    */
   byte[] encodeToBytes(Span span, Log log);
-
-  PreEncodedSpan preEncode(Span span);
-
-  String encodeToString(PreEncodedSpan span, Log log);
-  byte[] encodeToBytes(PreEncodedSpan span, Log log);
 }

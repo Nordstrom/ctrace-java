@@ -3,54 +3,37 @@ package io.ctrace;
 import io.opentracing.propagation.Format;
 import io.opentracing.propagation.TextMap;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /**
  * Propagator handles injecting and extracting SpanContext to/from carriers such as HTTP Headers,
  * TextMaps, etc...
  */
+@AllArgsConstructor
+@Accessors(fluent = true)
 public class Propagator {
 
-  static final String SPAN_ID_MAP_KEY = "ct-span-id";
-  static final String TRACE_ID_MAP_KEY = "ct-trace-id";
-  static final String BAGGAGE_MAP_PREFIX = "ct-bag-";
-  static final String SPAN_ID_HEADER_KEY = "Ct-Span-Id";
-  static final String TRACE_ID_HEADER_KEY = "Ct-Trace-Id";
-  static final String BAGGAGE_HEADER_PREFIX = "Ct-Bag-";
-  protected final String[] traceIdInjectHeaders;
-  protected final String[] spanIdInjectHeaders;
-  protected Set<String> traceIdExtractHeaders;
-  protected Set<String> spanIdExtractHeaders;
-
-  protected Propagator(
-      String[] traceIdExtractHeaders,
-      String[] spanIdExtractHeaders,
-      String[] traceIdInjectHeaders,
-      String[] spanIdInjectHeaders) {
-    if (traceIdExtractHeaders != null) {
-      this.traceIdExtractHeaders = new HashSet<>(Stream.of(traceIdExtractHeaders)
-          .map(s -> s.toLowerCase())
-          .collect(Collectors.toList()));
-    }
-    if (spanIdExtractHeaders != null) {
-      this.spanIdExtractHeaders = new HashSet<>(Stream.of(spanIdExtractHeaders)
-          .map(s -> s.toLowerCase())
-          .collect(Collectors.toList()));
-    }
-    this.traceIdInjectHeaders = traceIdInjectHeaders;
-    this.spanIdInjectHeaders = spanIdInjectHeaders;
-  }
+  //  static final String SPAN_ID_MAP_KEY = "ct-span-id";
+  //  static final String TRACE_ID_MAP_KEY = "ct-trace-id";
+  //  static final String BAGGAGE_MAP_PREFIX = "ct-bag-";
+  //  static final String SPAN_ID_HEADER_KEY = "Ct-Span-Id";
+  //  static final String TRACE_ID_HEADER_KEY = "Ct-Trace-Id";
+  static final String BAGGAGE_PREFIX = "Bag-";
+  @Getter private final Set<String> traceIdInjectHeaders;
+  @Getter private final Set<String> spanIdInjectHeaders;
+  @Getter private final Set<String> traceIdExtractHeaders;
+  @Getter private final Set<String> spanIdExtractHeaders;
 
   /**
    * Inject a SpanContext into a `carrier` of a given type, presumably for propagation across
    * process boundaries.
    *
    * <p>Example:
+   *
    * <pre><code>
    * Tracer tracer = ...
    * Span clientSpan = ...
@@ -69,34 +52,16 @@ public class Propagator {
     if (carrier instanceof TextMap) {
       TextMap textMap = (TextMap) carrier;
       Iterable<Map.Entry<String, String>> baggage = spanContext.baggageItems();
-      if (format == Format.Builtin.HTTP_HEADERS) {
-        if (baggage != null) {
-          for (Map.Entry<String, String> entry : spanContext.baggageItems()) {
-            textMap.put(BAGGAGE_HEADER_PREFIX + entry.getKey(), entry.getValue());
-          }
+      if (baggage != null) {
+        for (Map.Entry<String, String> entry : spanContext.baggageItems()) {
+          textMap.put(BAGGAGE_PREFIX + entry.getKey(), entry.getValue());
         }
-        textMap.put(SPAN_ID_HEADER_KEY, spanContext.spanId());
-        textMap.put(TRACE_ID_HEADER_KEY, spanContext.traceId());
-        if (this.traceIdInjectHeaders != null) {
-          for (String header : this.traceIdInjectHeaders) {
-            textMap.put(header, spanContext.traceId());
-          }
-        }
-        if (this.spanIdInjectHeaders != null) {
-          for (String header : this.spanIdInjectHeaders) {
-            textMap.put(header, spanContext.spanId());
-          }
-        }
-      } else if (format == Format.Builtin.TEXT_MAP) {
-        if (baggage != null) {
-          for (Map.Entry<String, String> entry : spanContext.baggageItems()) {
-            textMap.put(BAGGAGE_MAP_PREFIX + entry.getKey(), entry.getValue());
-          }
-        }
-        textMap.put(SPAN_ID_MAP_KEY, String.valueOf(spanContext.spanId()));
-        textMap.put(TRACE_ID_MAP_KEY, String.valueOf(spanContext.traceId()));
-      } else {
-        throw new IllegalArgumentException("Unknown format");
+      }
+      for (String header : this.traceIdInjectHeaders) {
+        textMap.put(header, spanContext.traceId());
+      }
+      for (String header : this.spanIdInjectHeaders) {
+        textMap.put(header, spanContext.spanId());
       }
     } else {
       throw new IllegalArgumentException("Unknown carrier");
@@ -108,6 +73,7 @@ public class Propagator {
    * process boundary.
    *
    * <p>Example:
+   *
    * <pre><code>
    * Tracer tracer = ...
    * TextMap httpHeadersCarrier = new AnHttpHeaderCarrier(httpRequest);
@@ -136,30 +102,19 @@ public class Propagator {
         String key = entry.getKey();
         String lowerKey = key.toLowerCase();
 
-        if (TRACE_ID_MAP_KEY.equals(lowerKey)) {
-          traceId = entry.getValue();
-        } else if (SPAN_ID_MAP_KEY.equals(lowerKey)) {
-          spanId = entry.getValue();
-        } else if (lowerKey.startsWith(BAGGAGE_MAP_PREFIX)) {
-          String bagKey = key.substring((BAGGAGE_MAP_PREFIX.length()));
+        if (lowerKey.startsWith(BAGGAGE_PREFIX)) {
+          String bagKey = key.substring((BAGGAGE_PREFIX.length()));
           baggage.put(bagKey, entry.getValue());
         }
       }
 
-      if (format == Format.Builtin.HTTP_HEADERS) {
-        for (Map.Entry<String, String> entry : textMap) {
-          String key = entry.getKey()
-              .toLowerCase();
+      for (Map.Entry<String, String> entry : textMap) {
+        String key = entry.getKey().toLowerCase();
 
-          if (traceId == null
-              && this.traceIdExtractHeaders != null
-              && this.traceIdExtractHeaders.contains(key)) {
-            traceId = entry.getValue();
-          } else if (spanId == null
-              && this.spanIdExtractHeaders != null
-              && this.spanIdExtractHeaders.contains(key)) {
-            spanId = entry.getValue();
-          }
+        if (traceId == null && this.traceIdExtractHeaders.contains(key)) {
+          traceId = entry.getValue();
+        } else if (spanId == null && this.spanIdExtractHeaders.contains(key)) {
+          spanId = entry.getValue();
         }
       }
     } else {

@@ -1,0 +1,64 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath 'org.junit.platform:junit-platform-gradle-plugin:1.0.1'
+    }
+}
+
+plugins {
+    id 'com.github.sherter.google-java-format' version '0.6'
+    id 'com.github.kt3k.coveralls' version '2.8.1'
+    id 'net.ltgt.apt' version '0.10'
+}
+
+apply plugin: 'java'
+apply plugin: 'jacoco'
+apply plugin: 'com.github.kt3k.coveralls'
+
+
+// Junit 5 gradle runner.
+apply plugin: 'org.junit.platform.gradle.plugin'
+
+group = 'io.ctrace'
+archivesBaseName = 'ctrace-core'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+}
+
+dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.0'
+
+    apt "org.projectlombok:lombok:1.18.0"
+
+    compile(
+            'org.slf4j:slf4j-api:1.7.25',
+            'io.opentracing:opentracing-api:0.31.0',
+            'io.opentracing:opentracing-util:0.31.0',
+            'com.google.guava:guava:25.1-jre'
+    )
+    testCompile(
+            'org.projectlombok:lombok:1.18.0',
+            'org.junit.jupiter:junit-jupiter-api:5.0.1',
+            'com.jsoniter:jsoniter:0.9.15',
+            'org.cthul:cthul-matchers:1.1.0',
+            'org.hamcrest:java-hamcrest:2.0.0.0',
+            'org.hamcrest:hamcrest-junit:2.0.0.0'
+    )
+
+    testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.0.1'
+}

@@ -1,7 +1,6 @@
 package io.ctrace;
 
 import java.security.SecureRandom;
-import java.util.Map;
 import lombok.val;
 
 public final class Tools {
