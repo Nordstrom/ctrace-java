@@ -1,4 +1,3 @@
 rootProject.name = 'ctrace'
-include 'ctrace-core'
-//include 'ctrace-log4j2'
+include 'ctrace'
 

@@ -1,0 +1,59 @@
+//buildscript {
+//    repositories {
+//        mavenCentral()
+//        jcenter()
+//    }
+//    dependencies {
+//        classpath 'net.saliman:gradle-cobertura-plugin:2.3.1'
+//    }
+//}
+
+//plugins {
+//    id 'com.github.sherter.google-java-format' version '0.6'
+//    id 'com.github.kt3k.coveralls' version '2.8.1'
+//    id 'net.ltgt.apt' version '0.10'
+//}
+//
+//apply plugin: 'com.github.kt3k.coveralls'
+
+group = 'io.ctrace'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+//repositories {
+//    mavenCentral()
+//    jcenter()
+//}
+
+//jacoco {
+//    toolVersion = '0.8.1'
+//}
+//
+//jacocoTestReport {
+//    reports {
+//        xml.enabled = true
+//        html.enabled = true
+//    }
+//}
+
+//cobertura {
+//    coverageFormats = ['html', 'xml']
+//    coverageIgnoreTrivial = true
+////    coverageIgnores = ['org.slf4j.Logger.*']
+////    coverageReportDir = new File("$buildDir/reports/cobertura")
+//}
+
+//test {
+//    // Enable JUnit 5 (Gradle 4.6+).
+//    useJUnitPlatform()
+//}
+
+dependencies {
+    compile(
+            'org.slf4j:slf4j-api:1.7.25',
+            'io.opentracing:opentracing-api:0.31.0',
+            'io.opentracing:opentracing-util:0.31.0',
+            'com.google.guava:guava:25.1-jre'
+    )
+}
